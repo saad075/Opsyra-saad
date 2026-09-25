@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Auth\Http\Middleware\EnsureAccountIsUsable;
 use App\Modules\Tenancy\Http\Middleware\ResolveTenantFromUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // (never a client-supplied header) and sets Postgres's app.tenant_id
         // for RLS — see App\Modules\Tenancy\Http\Middleware\ResolveTenantFromUser.
         $middleware->appendToGroup('api', ResolveTenantFromUser::class);
+
+        // Then refuse inactive accounts, and hold anyone with a password they
+        // didn't choose at the change-password screen.
+        $middleware->appendToGroup('api', EnsureAccountIsUsable::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

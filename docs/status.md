@@ -56,13 +56,24 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   (`Rbac/Support/PermissionCatalogue`) installed by migration and by
   `permissions:sync`, plus five **default roles** per tenant. A test fails
   if code checks a permission that isn't in the catalogue.
-- **145/145 tests passing**, all against real Postgres 17 + Memurai (not
+- **Login / auth** (new `app/Modules/Auth`): login by client code + email
+  + password (rate-limited, no account enumeration), logout, `me`, forced
+  password change for temporary passwords, password reset by email, login
+  history. Also **fixed a latent bug: real bearer tokens never worked
+  under RLS** (see `docs/decisions.md`).
+- **159/159 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
 ## Not done yet (Phase 3 continues)
 
-Next, per `docs/inventory.md`: **attendance hub** (plugs deductions into
+**Agreed order (user, 2026-09-25):** 1) login / auth (done), 2) **the
+frontend (next)**, 3) **Opsyra Central** (a new app for the landing site, sign-up,
+billing and super-admin; see `docs/research/subscription-architecture.md`)
+together with the test deployment, before the first paying customer. The
+modules below continue alongside as agreed.
+
+Then, per `docs/inventory.md`: **attendance hub** (plugs deductions into
 payslips via `PayslipContributor`; picks up `ApprovalHistory`, the
 attendance backfill on onboarding approval, and hourly pay), HR dashboard,
 staff ID card (build new: no source to port), subscription enforcement, US
@@ -93,7 +104,7 @@ nothing to launch manually.
 
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
-php artisan test            # should show 145 passed
+php artisan test            # should show 159 passed
 php artisan serve           # http://localhost:8000
 ```
 
@@ -122,14 +133,13 @@ which is expected.
   midnight isn't UTC midnight. The company timezone is now stored
   (`TenantSetting::get('timezone')`, set in the Setup wizard) and branches
   have their own; the jobs don't use them yet.
-- **No login endpoint yet**, so the first administrator can't actually log
-  in. Needs login (refusing non-active users: `pending_approval`,
-  `offboarded`, which today are only stopped by offboarding revoking tokens),
-  a password change on first login, and password reset;
-  provisioning currently prints a temporary password once. The dev database
-  has a **Demo Company** (client code `demo`, admin `admin@demo.test`),
-  created 2026-09-25; its temporary password wasn't kept, so reset it once
-  login exists.
+- **Dev login:** Demo Company, client code `demo`, `admin@demo.test`,
+  password `OpsyraDemo2026`. **Dev database only; never reuse it anywhere
+  else.** Emails go to `storage/logs/laravel.log` (`MAIL_MAILER=log`).
+- New staff get a random password and set their own with "forgot password".
+  A proper invitation email should come with email templates.
+- Sanctum tokens don't expire (`sanctum.expiration` is null). Decide a
+  lifetime when the mobile app's needs are known.
 - No super-admin panel or self sign-up yet: companies are created by an
   operator with `tenants:create`.
 - `_reference/` now also holds design-reference clones (Frappe HRMS,

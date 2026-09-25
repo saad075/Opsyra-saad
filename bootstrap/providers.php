@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Auth\AuthServiceProvider;
 use App\Modules\Hr\HrServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
 use App\Modules\Platform\PlatformServiceProvider;
@@ -14,6 +15,7 @@ return [
     TenancyServiceProvider::class,
     PlatformServiceProvider::class,
     RbacServiceProvider::class,
+    AuthServiceProvider::class,
     HrServiceProvider::class,
     PayrollServiceProvider::class,
     SetupServiceProvider::class,

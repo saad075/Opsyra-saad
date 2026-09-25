@@ -2,6 +2,55 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Login / auth (new `Auth` module)
+
+- **Fixed a latent bug: real bearer tokens never worked.** Sanctum finds
+  the token in `personal_access_tokens` (outside RLS), then loads its user
+  from `users` (under RLS) with no tenant context set, so the user is
+  invisible and the request fails with 401. Every earlier test used
+  `actingAs()`, which skips the token path. Tokens now store `tenant_id`,
+  and `TenantAccessToken::findToken()` switches into that tenant before
+  the user is loaded. Proven by disabling the fix, which makes the new
+  real-token test fail with 401. **Tests of auth must use real tokens.**
+- **Login by client code + email + password** (emails are unique per
+  company only). The password is checked before any account status is
+  revealed; SLMS360 answered "account not active" for any known email.
+  Identical messages for unknown company, unknown email and wrong
+  password. Throttled per account+IP (5/min) and per IP (30/min).
+- **`EnsureAccountIsUsable` runs on every API request.** It refuses
+  `pending_approval` / `offboarded` accounts even with a surviving token,
+  and holds anyone with `must_change_password` at the change-password
+  screen. `pending` (approved, not yet started) is allowed, because new
+  starters have onboarding tasks.
+- **Password reset** is tenant-scoped: `password_reset_codes` replaces
+  Laravel's email-keyed table, stores only the token's hash, is
+  single-use, lasts 60 minutes, and signs out every session.
+  `forgot-password` never reveals whether an account exists.
+- **Login history** ported from SLMS360 (`HRMS-ViewLoginLogs`).
+- **`DefaultRoles::seedFor()` no longer re-applies permissions** to roles
+  that already exist, so a tenant's edits survive. New catalogue
+  permissions reach existing Administrators via `grantToAdministrators()`.
+- Not ported: SLMS360's one-device-per-staff binding, which was
+  commented out there anyway. It belongs with Attendance's check-in
+  anti-fraud.
+
+## 2026-09-25 — Subscriptions: hybrid central + per country (amends ADR-001)
+
+Full reasoning is in `docs/research/subscription-architecture.md`.
+
+- **One central "Opsyra Central"** for the landing site, sign-up, plans,
+  payments, invoices and the BrainStormers super-admin. **Each country
+  deployment keeps a local enforcement copy** of its tenants'
+  plan/subscription/feature flags, pushed from central over a signed
+  bridge (SLMS360's pattern). Employee data never leaves its country;
+  central receives only aggregate usage.
+- **Amends ADR-001**, which put plans and subscriptions in per-country
+  tables without saying where they come from. The tables stay, as a copy.
+- **New app, not SLMS360's `main_front`**, porting its proven parts.
+  main_front is the whole school app with per-student pricing and one
+  installation per client.
+- **Built after login and the frontend**, alongside the test deployment.
+
 ## 2026-09-25 — Company provisioning, permission catalogue, default roles
 
 Needed before the first real company: nothing created permissions outside

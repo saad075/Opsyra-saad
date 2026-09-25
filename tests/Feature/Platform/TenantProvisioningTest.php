@@ -65,9 +65,17 @@ class TenantProvisioningTest extends TestCase
             }
         });
 
+        // First they must replace the temporary password (see AuthTest)…
+        $this->actingAs($admin, 'sanctum')->getJson('/api/setup-wizard/status')
+            ->assertForbidden()
+            ->assertJsonPath('password_change_required', true);
+
+        // …after which the wizard opens. The name is pre-filled, but the
+        // address and timezone still need entering.
+        app(TenantContext::class)->runAs($admin->tenant_id, fn () => $admin->forceFill(['must_change_password' => false])->save());
+
         $this->actingAs($admin, 'sanctum')->getJson('/api/setup-wizard/status')
             ->assertOk()
-            // Name is pre-filled, but address and timezone still need entering.
             ->assertJsonPath('data.next_step', 'company_details');
     }
 

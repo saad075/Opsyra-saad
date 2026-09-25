@@ -77,6 +77,7 @@ class User extends Authenticatable
             'is_remote' => 'boolean',
             'celebrate_birthday' => 'boolean',
             'justify_work_hours' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 

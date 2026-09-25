@@ -28,6 +28,9 @@ return [
 
     'country' => env('APP_COUNTRY', 'us'),
 
+    // Where the web frontend lives, for links in emails (e.g. password reset).
+    'frontend_url' => env('APP_FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

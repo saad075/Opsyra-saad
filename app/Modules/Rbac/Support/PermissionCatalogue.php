@@ -22,6 +22,7 @@ final class PermissionCatalogue
         'HRMS-CompanySettings' => ['Setup', 'Run the setup wizard and edit company details'],
         'HRMS-RoleManagement' => ['Access', 'Create and edit roles'],
         'HRMS-StaffPermissionUpdate' => ['Access', 'Change the roles and permissions of staff'],
+        'HRMS-ViewLoginLogs' => ['Access', 'See who logged in, when and from where'],
         'HRMS-StaffManagement' => ['HR', 'Add and edit staff, branches, departments, leaving reasons and checklists'],
         'HRMS-Approval-L1' => ['Approvals', 'Approve salaries at level 1'],
         'HRMS-Approval-L2' => ['Approvals', 'Final approval of new hires, leavers and salaries'],

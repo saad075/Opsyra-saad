@@ -28,8 +28,10 @@ final class DefaultRoles
     }
 
     /**
-     * Idempotent. Runs under the tenant's context: roles are tenant rows
-     * (RLS), and spatie's team id comes from that same context.
+     * Idempotent, and never touches a role that already exists — a tenant's
+     * own edits to its default roles survive re-running this. Runs under the
+     * tenant's context: roles are tenant rows (RLS), and spatie's team id
+     * comes from that same context.
      */
     public static function seedFor(Tenant $tenant): void
     {
@@ -37,8 +39,24 @@ final class DefaultRoles
 
         app(TenantContext::class)->runAs($tenant->id, function () {
             foreach (self::definitions() as $name => $permissions) {
-                Role::findOrCreate($name, PermissionCatalogue::GUARD)->syncPermissions($permissions);
+                if (! Role::where('name', $name)->where('guard_name', PermissionCatalogue::GUARD)->exists()) {
+                    Role::create(['name' => $name, 'guard_name' => PermissionCatalogue::GUARD])->syncPermissions($permissions);
+                }
             }
         });
+    }
+
+    /**
+     * For a permission added to the catalogue after tenants exist: every
+     * tenant's Administrator role gets it (that role means "everything").
+     */
+    public static function grantToAdministrators(string $permission): void
+    {
+        PermissionCatalogue::sync();
+
+        Tenant::withTrashed()->each(fn (Tenant $tenant) => app(TenantContext::class)->runAs(
+            $tenant->id,
+            fn () => Role::where('name', self::ADMINISTRATOR)->first()?->givePermissionTo($permission),
+        ));
     }
 }

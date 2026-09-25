@@ -64,6 +64,9 @@ class TenantProvisioner
                     'joined_at' => today(),
                 ]);
 
+                // They were handed a temporary password.
+                $admin->forceFill(['must_change_password' => true])->save();
+
                 $admin->assignRole(DefaultRoles::ADMINISTRATOR);
 
                 return $admin;

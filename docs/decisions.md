@@ -2,6 +2,24 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-24 — Phase 1 inventory findings
+
+Full detail in `docs/inventory.md`. Three findings corrected assumptions from the
+original scope/ADR-001 and are pending a decision at Checkpoint 1 (see
+`docs/inventory.md` §7): SLMS360's Task/Project Management module is present and
+already security-rebuilt at v2.7.1 (contradicts "removed, exclude"); no Staff ID
+Card implementation exists in either backend; ToddlersApp's "double-entry ledger"
+is actually a single-entry wallet balance, not double-entry bookkeeping.
+
+Also corrected: ADR-001 assumed ToddlersApp already has a portable tenant-resolution
+mechanism (global scope, resolver middleware, client-code directory) to port as-is.
+It doesn't — isolation there is manual/inline per-controller on a `client_id` column,
+with no scope, no middleware, and no client-code directory at all. Nothing changes
+about the Phase 2 plan (the architecture section already scoped the resolver,
+`BelongsToTenant` trait, and RLS as things to *build*), but "port the tenant
+resolution layer from ToddlersApp" should be read as "reuse the `client_id` →
+`tenant_id` naming lesson," not "copy an existing mechanism."
+
 ## 2026-09-24 — Bootstrap
 
 - **SLMS360 source**: tag `v2.7.1` from the local clone at

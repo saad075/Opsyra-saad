@@ -12,3 +12,6 @@ Schedule::command('staff:process-offboarding')->dailyAt('00:05')->timezone('UTC'
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// The public demo company is rebuilt from scratch every night.
+Schedule::command('demo:reset')->dailyAt('03:00')->timezone('UTC');

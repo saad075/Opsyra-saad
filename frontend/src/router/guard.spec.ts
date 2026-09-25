@@ -15,7 +15,7 @@ function signedIn(overrides: Partial<Me> = {}) {
   auth.me = {
     user: { id: 1, name: 'Ada Admin', email: 'ada@acme.test', designation: null, avatar: null, status: 'active' },
     must_change_password: false,
-    company: { name: 'Acme', client_code: 'acme', country: 'gb' },
+    company: { name: 'Acme', client_code: 'acme', country: 'gb', is_demo: false },
     roles: [],
     permissions: [],
     ...overrides,
@@ -49,6 +49,12 @@ describe('router guard', () => {
     expect(await guard(to('login', { guest: true }))).toBe(true)
     signedIn()
     expect(await guard(to('login', { guest: true }))).toEqual({ name: 'dashboard' })
+  })
+
+  it('opens the demo sign-in even for someone already signed in elsewhere', async () => {
+    signedIn()
+    const demo = { ...to('login', { guest: true }), query: { demo: '1' } } as RouteLocationNormalized
+    expect(await guard(demo)).toBe(true)
   })
 
   it('always opens the reset-password link, signed in or not', async () => {

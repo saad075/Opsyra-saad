@@ -20,8 +20,17 @@ Route::get('/get-started', [GetStartedController::class, 'show'])->name('get-sta
 Route::post('/get-started', [GetStartedController::class, 'store'])->middleware('throttle:10,1');
 Route::get('/get-started/check-code', [GetStartedController::class, 'checkCode'])->middleware('throttle:60,1')->name('get-started.check-code');
 Route::get('/get-started/done', [GetStartedController::class, 'done'])->name('get-started.done');
-// Placeholder until the live demo is built.
-Route::view('/demo', 'coming-soon', ['title' => 'Demo', 'heading' => 'Explore the live demo', 'text' => 'A sample company with staff, approvals, checklists and payslips, reset every night. Being built now.'])->name('demo');
+// The live demo company lives on the US deployment and is rebuilt nightly
+// there (demo:reset). Its sign-in details are public by design.
+Route::get('/demo', function () {
+    $appUrl = config('opsyra.countries.'.config('opsyra.demo.country').'.url');
+
+    return view('demo', [
+        'appUrl' => $appUrl ? rtrim($appUrl, '/').'/login?'.http_build_query(['client_code' => 'demo', 'demo' => 1]) : null,
+        'email' => config('opsyra.demo.email'),
+        'password' => config('opsyra.demo.password'),
+    ]);
+})->name('demo');
 
 // BrainStormers super-admin area.
 Route::prefix('admin')->name('admin.')->group(function () {

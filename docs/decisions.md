@@ -52,6 +52,33 @@ and Get started, then the next steps. Decisions:
   demo account can't change its password or trigger emails, so visitors
   can't lock each other out.
 
+## 2026-09-25 — Live demo company
+
+- **`demo:reset`** (nightly at 03:00 UTC) deletes the demo company and
+  rebuilds it with `DemoCompanyBuilder`, **through Opsyra's own services**
+  (onboarding, offboarding, checklists, payroll, approvals), so it behaves
+  exactly like a real company. Dates are relative to today; no Faker (it's
+  a dev-only dependency), so names and data are fixed and deterministic.
+- **Contents:** 3 branches, 20+ staff with a reporting hierarchy,
+  departments and job titles, default roles assigned, custom pay
+  components, salaries, bank details (3 missing, so paid by cheque), 3
+  approved monthly runs plus this month half-approved, bonuses, an open
+  salary query, a recent joiner with an overdue checklist task, an approved
+  future starter, a hire and a leaver awaiting level-2 approval, a
+  scheduled leaver, a past leaver, login history, and setup complete.
+- **Wiping a company** relies on every company table cascading from
+  `tenants` (checked: all 31 do). Two tables that block deleting rows they
+  reference are cleared first.
+- **The demo is locked** (`ProtectDemoCompany`) so visitors can't lock the
+  next visitor out: no password change, no role edits, and no changes to
+  the shared account's own staff record. Everything else is open.
+  Forgot-password never emails for the demo, and all demo addresses use
+  the reserved `.example` domain.
+- **Public sign-in:** `admin@demo-company.example` / `opsyra-demo-2026`,
+  shown on the website's Demo page, which links to `/login?demo=1` (filled
+  in, one click). Central registers the demo as `is_demo`, so company-code
+  login works but it never counts as revenue.
+
 ## 2026-09-25 — Frontend stack
 
 - **Vue 3 + TypeScript + Vite** in `frontend/` (same repo), with Vue Router,

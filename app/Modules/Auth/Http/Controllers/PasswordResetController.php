@@ -33,7 +33,9 @@ class PasswordResetController extends Controller
 
         [$tenant, $user] = $this->resolve($validated['client_code'], $validated['email']);
 
-        if ($user && ! in_array($user->status, ['pending_approval', 'offboarded'], true)) {
+        // The demo's shared account can't be reset (and its addresses are
+        // on the reserved .example domain anyway) — same answer either way.
+        if ($user && ! $tenant->is_demo && ! in_array($user->status, ['pending_approval', 'offboarded'], true)) {
             app(TenantContext::class)->runAs($tenant->id, function () use ($user, $tenant) {
                 $token = Str::random(64);
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Auth\Http\Middleware\EnsureAccountIsUsable;
+use App\Modules\Platform\Http\Middleware\ProtectDemoCompany;
 use App\Modules\Tenancy\Http\Middleware\ResolveTenantFromUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Then refuse inactive accounts, and hold anyone with a password they
         // didn't choose at the change-password screen.
         $middleware->appendToGroup('api', EnsureAccountIsUsable::class);
+
+        // The shared public demo company: nothing that could lock the next
+        // visitor out (see ProtectDemoCompany).
+        $middleware->appendToGroup('api', ProtectDemoCompany::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

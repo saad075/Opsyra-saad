@@ -107,6 +107,7 @@ class AuthController extends Controller
                     'name' => TenantSetting::get('company_name', $tenant->name),
                     'client_code' => $tenant->client_code,
                     'country' => $tenant->country,
+                    'is_demo' => (bool) $tenant->is_demo,
                 ],
                 'roles' => $user->getRoleNames(),
                 'permissions' => $user->getAllPermissions()->pluck('name')->values(),

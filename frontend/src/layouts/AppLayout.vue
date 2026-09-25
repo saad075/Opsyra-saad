@@ -25,6 +25,9 @@ const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 
+// The marketing site (Opsyra Central), for the demo banner's call to action.
+const centralUrl = (import.meta.env.VITE_CENTRAL_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8100'
+
 const icon = (component: Component) => () => h(NIcon, null, { default: () => h(component) })
 const link = (name: string, label: string) => () => h(RouterLink, { to: { name } }, { default: () => label })
 
@@ -139,6 +142,10 @@ async function onUserMenu(key: string) {
       </NLayoutHeader>
 
       <NLayoutContent class="app-content" :native-scrollbar="false">
+        <div v-if="auth.me?.company.is_demo" class="demo-banner" role="note">
+          <span><strong>You’re in the live demo.</strong> Try anything — everything resets every night.</span>
+          <a :href="centralUrl + '/get-started'" class="demo-cta">Start your own free trial →</a>
+        </div>
         <RouterView />
       </NLayoutContent>
     </NLayout>
@@ -195,6 +202,23 @@ async function onUserMenu(key: string) {
 
 .app-content {
   height: calc(100% - 60px);
+}
+
+.demo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 24px;
+  background: #e3f1ee;
+  color: #0a5a50;
+  font-size: 0.95rem;
+}
+
+.demo-cta {
+  font-weight: 700;
+  color: inherit;
 }
 
 @media (max-width: 640px) {

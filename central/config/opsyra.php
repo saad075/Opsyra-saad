@@ -47,4 +47,22 @@ return [
         'bulk_import' => ['label' => 'Bulk import and export', 'available' => false],
     ],
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Live demo
+    |--------------------------------------------------------------------------
+    |
+    | The public demo company, rebuilt nightly on this country's deployment
+    | (DemoCompanyBuilder there). The sign-in details are public by design
+    | and must match DemoCompanyBuilder::ADMIN_EMAIL / ADMIN_PASSWORD.
+    |
+    */
+
+    'demo' => [
+        'country' => env('OPSYRA_DEMO_COUNTRY', 'us'),
+        'email' => 'admin@demo-company.example',
+        'password' => 'opsyra-demo-2026',
+    ],
+
 ];

@@ -12,7 +12,13 @@ const route = useRoute()
 // Arriving from the website's "Log in" (…/login?client_code=acme) fills the
 // code in; otherwise the last code used on this device.
 const fromLink = typeof route.query.client_code === 'string' ? route.query.client_code : ''
-const form = reactive({ client_code: fromLink || rememberedClientCode(), email: '', password: '' })
+
+// From the website's "Enter the demo": the shared, public demo sign-in is
+// filled in for one-click entry (the demo company resets nightly).
+const isDemo = route.query.demo === '1'
+const DEMO = { client_code: 'demo', email: 'admin@demo-company.example', password: 'opsyra-demo-2026' }
+
+const form = reactive(isDemo ? { ...DEMO } : { client_code: fromLink || rememberedClientCode(), email: '', password: '' })
 const error = ref('')
 const busy = ref(false)
 
@@ -32,8 +38,11 @@ async function submit() {
 </script>
 
 <template>
-  <h1>Sign in</h1>
-  <p class="muted intro">Use the company code your administrator gave you.</p>
+  <h1>{{ isDemo ? 'Enter the live demo' : 'Sign in' }}</h1>
+  <p class="muted intro">
+    <template v-if="isDemo">Demo Company is shared by every visitor and resets every night. The sign-in is filled in for you.</template>
+    <template v-else>Use the company code your administrator gave you.</template>
+  </p>
 
   <NAlert v-if="error" type="error" :show-icon="false" class="alert">{{ error }}</NAlert>
 
@@ -48,7 +57,7 @@ async function submit() {
       <NInput v-model:value="form.password" type="password" show-password-on="click" :input-props="{ autocomplete: 'current-password' }" />
     </NFormItem>
     <NButton type="primary" block attr-type="submit" :loading="busy" :disabled="!form.client_code || !form.email || !form.password">
-      Sign in
+      {{ isDemo ? 'Enter the demo' : 'Sign in' }}
     </NButton>
   </NForm>
 

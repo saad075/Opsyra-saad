@@ -133,6 +133,16 @@ which is expected.
 
 ## Known gaps / open items
 
+- **AVG antivirus on this machine** flagged test files as `IDP.Generic`
+  (a heuristic false positive), quarantined them, and held connections
+  open. That made test runs appear to hang, and it left idle-in-transaction
+  database connections holding locks. The user added a folder exception
+  for the project on 2026-09-25. The quarantined names
+  `tests/Feature/Platform/DemoCompanyTest.php` and `PublicDemoTest.php`
+  stay blocked until AVG's Virus Chest is cleared; the test lives in
+  `DemoResetTest.php`. If tests ever seem to hang, check `pg_stat_activity`
+  on `opsyra_us_test` for stale "idle in transaction" connections first.
+
 - `docker-compose.yml`/`docker/` are written but **unverified** — no Docker
   on this machine; everything so far was built and tested against the native
   Postgres/Memurai install instead (see `docs/decisions.md`, 2026-09-25 entry).

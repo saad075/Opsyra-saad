@@ -57,6 +57,10 @@ export async function guard(to: RouteLocationNormalized) {
 
   if (to.meta.public) return true
 
+  // "Enter the demo" from the website always reaches the demo sign-in, even
+  // for someone already signed in to their own company on this device.
+  if (to.meta.guest && to.query.demo === '1') return true
+
   if (to.meta.guest) return auth.isAuthenticated ? { name: 'dashboard' } : true
 
   if (!auth.isAuthenticated) return { name: 'login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }

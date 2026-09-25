@@ -9,7 +9,7 @@ export interface ApiEnvelope<T> {
 export interface Me {
   user: { id: number; name: string; email: string; designation: string | null; avatar: string | null; status: string }
   must_change_password: boolean
-  company: { name: string; client_code: string; country: string }
+  company: { name: string; client_code: string; country: string; is_demo: boolean }
   roles: string[]
   permissions: string[]
 }

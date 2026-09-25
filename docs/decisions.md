@@ -2,6 +2,41 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Phase 3, module 5: Salaries hub (new `Payroll` module)
+
+Research and the user's three choices are in `docs/research/salaries.md`;
+the port mapping is in `docs/provenance.md`. Highlights:
+
+- **Configurable pay components** (Frappe/Horilla model) replace SLMS360's
+  fixed columns. They're seeded per country, and Pakistan gets SLMS360's
+  set. A component's type and calculation are fixed once created. The
+  single Basic component is seeded and can't be deactivated.
+- **Salaries are effective-dated.** The one in force at a period's end is
+  used for the whole period; a mid-period raise is not split. Revisit if
+  customers need it (Frappe does split).
+- **Monthly and biweekly.** Periods are start/end dates; salary amounts are
+  per period of the salary's own frequency; overlapping runs of the same
+  frequency are refused.
+- **Proration by calendar days employed** in the period, applied to fixed
+  amounts on components flagged `prorate`, not by working days. SLMS360 did
+  the same via attendance.
+- **Attendance plugs in later** through the `PayslipContributor` interface
+  (container tag `payroll.payslip_contributors`), and adds its own payslip
+  lines.
+- **Tax % is worked out on the salary's gross before adjustments**, as in
+  SLMS360. Country tax engines (US federal, UK PAYE, Pakistan slabs) are
+  future work.
+- **Approvals:** L1 then L2; an L2 holder may approve a draft outright; no
+  downgrades; the same person can't act at both levels. Payment method
+  (transfer/cheque) is set at final approval.
+- **Approved pay is never rewritten.** Only drafts regenerate, and salary
+  claims are settled by an adjustment on a later payslip. SLMS360
+  regenerated approved salaries in place.
+- **Money is decimal(15,3)**, rounded per currency (OMR has 3 decimals).
+- Not ported: hourly wage basis (needs hours from Attendance), the
+  "salary generated" email (no mail templates yet), US federal tax,
+  garnishments and employer taxes (the US payroll module).
+
 ## 2026-09-24 — Phase 3, module 4: onboarding/offboarding checklists
 
 New build: SLMS360 has no equivalent. Design taken from the

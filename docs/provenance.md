@@ -7,6 +7,41 @@ each change.
 
 ---
 
+## Salaries hub (`app/Modules/Payroll`)
+
+- **Source**: SLMS360 @ `fa18b472` (tag `v2.7.1`):
+  `app/Http/Controllers/Client/Staff/{SalaryController,SalaryClaimController}.php`,
+  `app/Http/Controllers/Client/HR/Staff/StaffAdjustmentController.php`,
+  `app/Console/Commands/Client/Staff/{StaffSalaryCommand,RegenrateStaffSalaryCommand,StaffManualSalaryCommand}.php`,
+  `app/Console/Commands/StaffSalaryBiWeeklyCommand.php`,
+  `app/Models/{UserSalary,UserSalaryLog,StaffSalaryPost,StaffSalaryPostClaim,StaffAdjustment,EmployeeAccount}.php`,
+  `app/Helpers/Helper.php` (`getMonthlyAdjustmentBalance`), and the
+  `user_salaries` / `staff_salary_posts` / `staff_salary_post_claims` /
+  `staff_adjustments` / `employee_accounts` migrations (2024–2025).
+- **Mapping**:
+  - `user_salaries` (fixed columns) → `pay_components` +
+    `staff_salaries` (effective-dated) + `staff_salary_components`
+  - `staff_salary_posts` (~40 columns) → `pay_runs` + `payslips` +
+    `payslip_lines`
+  - `staff_adjustments` (month/year) → `salary_adjustments` (effective
+    date, consumed by a `payslip_id`)
+  - `staff_salary_post_claims` → `salary_claims`
+  - `employee_accounts` → `staff_bank_accounts` (encrypted)
+  - the four salary Artisan commands → `PayslipGenerator` + the queued
+    `GeneratePayslips` job
+- **Security fixes**: SLMS360 checked one permission across all salary
+  code. Now every action is gated (`manage-salaries`,
+  `manage-salary-adjustments`, `approve-salaries-l1/l2`, `view-payroll`),
+  every id is validated within the tenant, bank details are encrypted with
+  every change logged, and staff see only their own released payslips and
+  masked bank details.
+- **Not ported**: `AttendanceDeductionCalculator` (Attendance Hub, via
+  `PayslipContributor`); hourly wage basis; US federal tax, garnishments
+  and employer tax (US payroll module); the salary-generated and claim
+  emails; `user_salary_logs` (superseded by effective-dated salaries).
+
+---
+
 ## Onboarding / offboarding approvals (the L2 gate)
 
 - **Source**: SLMS360 @ `fa18b472` (tag `v2.7.1`). `StaffController` at

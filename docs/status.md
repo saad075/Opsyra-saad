@@ -35,14 +35,27 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   checklist from the chosen or default template; "my tasks" plus ticking
   off; the checklist completes itself when every task is done or skipped.
   Every tenant starts with a starter onboarding and offboarding template.
-- **90/90 tests passing**, all against real Postgres 17 + Memurai (not
+- **Phase 3, module 5 — Salaries hub** (new `app/Modules/Payroll`):
+  configurable pay components with country defaults, effective-dated
+  salaries, encrypted bank details, adjustments, monthly and biweekly pay
+  runs (queued), itemised payslips, L1→L2 approval, transfer/cheque,
+  carry-forward, salary queries. Attendance deductions plug in later via
+  `PayslipContributor`. See `docs/research/salaries.md`.
+- **125/125 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
 ## Not done yet (Phase 3 continues)
 
-Next, per `docs/inventory.md`: salaries
-hub, attendance hub (picks up `ApprovalHistory` and the attendance backfill
+**Next: the Setup wizard, moved up** (user,
+2026-09-25): with the configurable Frappe/Horilla-style approach, a
+company must be walked through configuring everything at initial setup.
+Scope: company details, branches/departments, roles + L1/L2 approvers,
+departure reasons, checklist templates, pay components + pay frequency,
+then per-employee salary and bank details. Needs a progress indicator and
+the ability to skip a step and come back. Backend: a per-tenant "setup
+status" API reporting what's configured and what's missing. Every new
+module's settings must be added to it. Then, per `docs/inventory.md`: attendance hub (picks up `ApprovalHistory` and the attendance backfill
 on onboarding approval), HR dashboard, staff ID card (build new — no source
 to port), setup wizard, subscription enforcement, US payroll, Excel engine,
 then ToddlersApp's accounts/fees/billing/ledger (ledger is new-build — see
@@ -72,7 +85,7 @@ nothing to launch manually.
 
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
-php artisan test            # should show 90 passed
+php artisan test            # should show 125 passed
 php artisan serve           # http://localhost:8000
 ```
 

@@ -43,6 +43,31 @@ with their `origin` remote removed. Rules:
 - If a clone goes stale, delete it and re-clone from the original repo; don't try
   to update it in place.
 
+## Local development
+
+**Docker Compose** (`docker-compose.yml`, `docker/`) is the intended path —
+`docker compose up`, then `docker compose exec app php artisan migrate`. This
+has not been exercised on the machine this was built on (no Docker install
+there); review before first use.
+
+**Native setup** (what this was actually built and tested against):
+
+1. PostgreSQL 17 and a Redis-compatible server running locally (on Windows,
+   [Memurai](https://www.memurai.com/) — the official Redis Windows port is
+   abandoned since 2016).
+2. Create a role and per-country databases:
+   ```sql
+   CREATE ROLE opsyra WITH LOGIN PASSWORD '<password>' CREATEDB;
+   CREATE DATABASE opsyra_us OWNER opsyra;   -- repeat for uk / om / pk as needed
+   CREATE DATABASE opsyra_us_test OWNER opsyra; -- test suite uses Postgres too, for RLS
+   ```
+3. `composer install`, copy `.env.example` to `.env`, fill in the DB/Redis
+   credentials above, `php artisan key:generate`, `php artisan migrate`.
+4. `php artisan serve`.
+
+See `docs/decisions.md` (2026-09-25 entry) for why native was used here and
+what to watch for switching back to Docker.
+
 ## Status
 
 Bootstrapping — see `docs/decisions.md` for current phase.

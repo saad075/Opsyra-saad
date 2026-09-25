@@ -38,4 +38,5 @@ Homestead.yaml
 
 # Testing / coverage
 /.phpunit.cache
+.phpunit.result.cache
 /coverage/

@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Hr\Models\UserBranch;
 use App\Modules\Hr\Models\UserUpdateLog;
+use App\Modules\Hr\Services\StaffOnboarding;
 use App\Modules\Rbac\Models\Role;
 use App\Modules\Tenancy\Support\TenantContext;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule as ValidationRule;
@@ -17,13 +18,14 @@ use Illuminate\Validation\Rule as ValidationRule;
 /**
  * Adapted from SLMS360's app/Http/Controllers/Client/StaffController.php
  * (1098 lines; see docs/provenance.md for the exact method-by-method
- * mapping). This is the plain-CRUD subset only — onboarding/offboarding
- * approval workflow (StaffOnboardingRequest, StaffOffboardRequest,
- * ApprovalHistory, the "L2 gate", the attendance backfill on approval) is a
- * separate module, not yet ported; create() here always activates a staff
- * record directly (or leaves it 'pending' if joined_at is in the future) with
- * no approval gate. The next module layers that gate on top rather than this
- * one half-building it.
+ * mapping). The onboarding/offboarding approval workflow that lived in the
+ * same SLMS360 controller is split out into StaffOnboardingController /
+ * StaffOffboardingController, with the state machine in
+ * App\Modules\Hr\Services. create() and statusUpdate() hand every new or
+ * returning staff member to StaffOnboarding::submit() — the L2 gate — which
+ * activates them straight away only if the caller holds HRMS-Approval-L2.
+ * (The attendance backfill SLMS360 ran on approval belongs to the
+ * Attendance Hub, not built yet.)
  *
  * Also not ported here (deferred to the module that owns them):
  * UserSalary creation (Salaries Hub), the account-creation email
@@ -122,10 +124,26 @@ class StaffController extends Controller
             'zip_code' => ['nullable', 'string'],
         ]);
 
-        $status = Carbon::parse($validated['joined_at'])->startOfDay()->gt(now()->startOfDay())
-            ? 'pending'
-            : 'active';
+        [$user, $onboardingRequest] = DB::transaction(fn () => $this->createStaff($request, $validated));
 
+        $requiresApproval = $onboardingRequest->status === 'pending';
+
+        return response()->json([
+            'status' => true,
+            'message' => $requiresApproval
+                ? 'Staff onboarding submitted. The account will be activated once an L2 approver reviews it.'
+                : 'Staff has been created successfully.',
+            'data' => ['id' => $user->id, 'requires_approval' => $requiresApproval],
+        ], 201);
+    }
+
+    /**
+     * Everything create() writes, as one unit — a failed permission check
+     * part-way (update-staff-permissions) rolls back the half-made staff
+     * record instead of leaving it behind, as SLMS360 did.
+     */
+    private function createStaff(Request $request, array $validated): array
+    {
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -137,7 +155,7 @@ class StaffController extends Controller
             'joined_at' => $validated['joined_at'],
             'is_remote' => $validated['is_remote'],
             'hierarchy_parent_id' => $validated['hierarchy_parent_id'] ?? null,
-            'status' => $status,
+            'status' => 'pending_approval',
             'national_id' => $validated['national_id'] ?? null,
             'blood_group' => $validated['blood_group'] ?? null,
             'address' => $validated['address'] ?? null,
@@ -161,11 +179,7 @@ class StaffController extends Controller
         }
         $user->branches()->first()?->update(['status' => true]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Staff has been created successfully.',
-            'data' => ['id' => $user->id],
-        ], 201);
+        return [$user, app(StaffOnboarding::class)->submit($user, $request->user())];
     }
 
     public function update(Request $request)
@@ -270,9 +284,24 @@ class StaffController extends Controller
             ]);
         }
 
-        $user->update(['status' => 'active', 'lefted_at' => null, 'left_reason' => null]);
+        // Rehiring goes through the same L2 gate as a new hire. SLMS360 set
+        // 'active' directly here, which let anyone with staff management
+        // reactivate a candidate an L2 approver had rejected at onboarding.
+        $onboardingRequest = DB::transaction(function () use ($request, $user) {
+            $user->update(['lefted_at' => null, 'left_reason' => null, 'departure_reason_id' => null]);
 
-        return response()->json(['status' => true, 'message' => 'Staff member has been reactivated.']);
+            return app(StaffOnboarding::class)->submit($user, $request->user());
+        });
+
+        $requiresApproval = $onboardingRequest->status === 'pending';
+
+        return response()->json([
+            'status' => true,
+            'message' => $requiresApproval
+                ? 'Reactivation submitted. It will take effect once an L2 approver reviews it.'
+                : 'Staff member has been reactivated.',
+            'data' => ['requires_approval' => $requiresApproval],
+        ]);
     }
 
     /**

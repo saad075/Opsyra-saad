@@ -5,7 +5,10 @@ namespace Tests\Feature\Hr;
 use App\Models\User;
 use App\Modules\Hr\Models\Branch;
 use App\Modules\Hr\Models\Department;
+use App\Modules\Hr\Models\DepartureReason;
 use App\Modules\Hr\Models\Designation;
+use App\Modules\Hr\Models\StaffOffboardRequest;
+use App\Modules\Hr\Models\StaffOnboardingRequest;
 use App\Modules\Hr\Models\UserBranch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\AssertsTenantIsolation;
@@ -53,6 +56,38 @@ class HrIsolationTest extends TestCase
             $staff = User::factory()->for($this->tenantB)->create();
 
             return UserBranch::create(['user_id' => $staff->id, 'branch_id' => $branch->id, 'status' => true]);
+        });
+    }
+
+    public function test_departure_reasons_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(
+            DepartureReason::class,
+            fn () => DepartureReason::create(['name' => 'Relocation']),
+        );
+    }
+
+    public function test_staff_onboarding_requests_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(StaffOnboardingRequest::class, function () {
+            $staff = User::factory()->for($this->tenantB)->create(['status' => 'pending_approval']);
+
+            return StaffOnboardingRequest::create(['user_id' => $staff->id, 'requested_by' => $this->userB->id, 'status' => 'pending']);
+        });
+    }
+
+    public function test_staff_offboard_requests_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(StaffOffboardRequest::class, function () {
+            $staff = User::factory()->for($this->tenantB)->create(['status' => 'active']);
+
+            return StaffOffboardRequest::create([
+                'user_id' => $staff->id,
+                'requested_by' => $this->userB->id,
+                'last_working_day' => today(),
+                'departure_reason_id' => DepartureReason::where('name', 'Resignation')->value('id'),
+                'status' => 'pending',
+            ]);
         });
     }
 

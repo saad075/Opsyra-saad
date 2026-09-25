@@ -2,6 +2,47 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-24 — Phase 3, module 3: onboarding/offboarding approvals
+
+Full detail in `docs/provenance.md`. Highlights:
+
+- **Scope chosen with the user after comparing Frappe HRMS, Horilla and
+  Odoo** (`docs/research/onboarding-offboarding.md`): port SLMS360's L2
+  gate and direct-report reassignment (neither of the others does these
+  well), add configurable departure reasons (Odoo's idea), and **defer the
+  onboarding/offboarding checklist** — templates, per-person tasks, derived
+  status, which all three mature systems have — to its own module next.
+- `ApprovalHistory` moved out of this module to the Attendance Hub (only
+  leave approvals use it in SLMS360).
+- Rehiring an offboarded person now goes through the L2 gate too — closing
+  a bypass where a rejected candidate could be reactivated without approval.
+- Offboarding/cancelling now require a permission (SLMS360 required none).
+- No permission seeder exists yet: `HRMS-Approval-L2`, like every other
+  permission so far, is only created in tests. Needs one before first real
+  tenant (likely with the setup wizard).
+- **UI direction** (not yet decided — no frontend stack chosen): the user
+  reviewed Horilla's demo and found it acceptable as a reference for layout
+  (stage pipelines, approval queues, per-person task lists).
+
+## 2026-09-24 — External design references (open-source HR/ERP/CRM)
+
+- Added third-party open-source projects as **design references only** —
+  data models, workflow states and feature coverage. **No code is copied
+  or translated from them**, because most are copyleft and Opsyra is
+  proprietary SaaS. Licences, checked from each repo's own licence file:
+  Frappe HRMS GPL-3.0, Horilla LGPL-2.1, Odoo Community LGPL-3.0 (Odoo
+  Enterprise is proprietary and not referenced at all), OroCRM OSL-3.0
+  (copyleft that covers network deployment — the strictest of the set),
+  Krayin MIT (the only permissive one; code reuse would be allowed with
+  attribution, but still prefer re-deriving).
+- Clones live in `_reference/` next to SLMS360/ToddlersApp: shallow, sparse
+  (only the relevant directories), gitignored. Unlike the two source repos,
+  `origin` is **kept** with its push URL set to `DISABLED` — sparse partial
+  clones fetch file contents lazily from origin, so removing it breaks
+  them. We have no write access to these upstreams anyway.
+- Findings per module go in `docs/research/<module>.md`. First one:
+  `docs/research/onboarding-offboarding.md`.
+
 ## 2026-09-25 — Phase 3, module 2: HR core (staff, departments, teams)
 
 Full detail in `docs/provenance.md`. Highlights:

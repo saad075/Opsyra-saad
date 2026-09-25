@@ -24,6 +24,7 @@ class StaffControllerTest extends TestCase
 
         Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
         Permission::create(['name' => 'HRMS-StaffPermissionUpdate', 'guard_name' => 'sanctum']);
+        Permission::create(['name' => 'HRMS-Approval-L2', 'guard_name' => 'sanctum']);
 
         $this->branchA = $this->tenantContext()->runAs(
             $this->tenantA->id,
@@ -58,9 +59,12 @@ class StaffControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_it_creates_staff_and_the_new_staff_member_is_immediately_active(): void
+    // Immediate activation only when the creator is also an L2 approver —
+    // the non-L2 path is covered in StaffOnboardingTest.
+    public function test_an_l2_approver_creating_staff_activates_them_immediately(): void
     {
         $this->givePermission($this->userA, 'HRMS-StaffManagement');
+        $this->givePermission($this->userA, 'HRMS-Approval-L2');
 
         $response = $this->actingAs($this->userA, 'sanctum')->postJson('/api/staff/create', [
             'name' => 'New Hire',
@@ -85,6 +89,7 @@ class StaffControllerTest extends TestCase
     public function test_a_future_join_date_leaves_the_staff_member_pending(): void
     {
         $this->givePermission($this->userA, 'HRMS-StaffManagement');
+        $this->givePermission($this->userA, 'HRMS-Approval-L2');
 
         $response = $this->actingAs($this->userA, 'sanctum')->postJson('/api/staff/create', [
             'name' => 'Future Hire',
@@ -170,9 +175,10 @@ class StaffControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_status_update_reactivates_an_offboarded_staff_member(): void
+    public function test_an_l2_approver_reactivates_an_offboarded_staff_member_immediately(): void
     {
         $this->givePermission($this->userA, 'HRMS-StaffManagement');
+        $this->givePermission($this->userA, 'HRMS-Approval-L2');
 
         $offboarded = $this->tenantContext()->runAs($this->tenantA->id, fn () => User::factory()->for($this->tenantA)->create([
             'status' => 'offboarded',

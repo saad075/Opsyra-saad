@@ -1,7 +1,10 @@
 <?php
 
 use App\Modules\Hr\Http\Controllers\DepartmentController;
+use App\Modules\Hr\Http\Controllers\DepartureReasonController;
 use App\Modules\Hr\Http\Controllers\StaffController;
+use App\Modules\Hr\Http\Controllers\StaffOffboardingController;
+use App\Modules\Hr\Http\Controllers\StaffOnboardingController;
 use App\Modules\Hr\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +36,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('active-direct-reports', [StaffController::class, 'activeDirectReports']);
         Route::post('update-avatar', [StaffController::class, 'updateAvatar']);
         Route::post('clear-device-id', [StaffController::class, 'clearDeviceId']);
+
+        // Same paths as SLMS360's routes/client/BasicInformationRoutes.php.
+        Route::post('onboard/approve', [StaffOnboardingController::class, 'approve']);
+        Route::post('onboard/reject', [StaffOnboardingController::class, 'reject']);
+        Route::post('onboard/complete-rejected', [StaffOnboardingController::class, 'completeRejected']);
+        Route::get('onboard/pending-approvals', [StaffOnboardingController::class, 'pendingApprovals']);
+        Route::get('onboard/rejected-awaiting-notification', [StaffOnboardingController::class, 'rejectedAwaitingNotification']);
+
+        Route::post('offboard', [StaffOffboardingController::class, 'offboard']);
+        Route::post('cancel-offboarding', [StaffOffboardingController::class, 'cancel']);
+        Route::post('offboard/approve', [StaffOffboardingController::class, 'approve']);
+        Route::post('offboard/reject', [StaffOffboardingController::class, 'reject']);
+        Route::get('offboard/pending-approvals', [StaffOffboardingController::class, 'pendingApprovals']);
+    });
+
+    Route::prefix('departure-reasons')->group(function () {
+        Route::get('list', [DepartureReasonController::class, 'index']);
+        Route::post('create', [DepartureReasonController::class, 'store']);
+        Route::post('update', [DepartureReasonController::class, 'update']);
+        Route::post('delete', [DepartureReasonController::class, 'destroy']);
     });
 
     Route::prefix('teams')->group(function () {

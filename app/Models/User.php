@@ -42,6 +42,8 @@ class User extends Authenticatable
         'device_id',
         'lefted_at',
         'left_reason',
+        'departure_reason_id',
+        'offboarding_new_manager_id',
         'address',
         'city',
         'zip_code',

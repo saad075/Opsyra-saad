@@ -7,6 +7,73 @@ each change.
 
 ---
 
+## Onboarding / offboarding approvals (the L2 gate)
+
+- **Source**: SLMS360 @ `fa18b472` (tag `v2.7.1`). `StaffController` at
+  `48bec2bc` (2026-09-19); `StaffOnboardingRequest` at `cfa793f4`
+  (2026-09-11); `StaffOffboardRequest` + its migration at `2b72ad8c`
+  (2026-09-11); `ProcessScheduledOffboardingCommand` at `71221050`
+  (2026-09-10); `ActivatePendingStaffCommand` at `4050d10c` (2026-09-06).
+- **Original paths**: `app/Http/Controllers/Client/StaffController.php`
+  (`create` gate branch, `applyOnboarding`, `approveOnboarding`,
+  `rejectOnboarding`, `completeRejectedOnboarding`, `pendingOnboardApprovals`,
+  `rejectedOnboardingAwaitingNotification`, `offboardStaff`,
+  `applyOffboarding`, `approveOffboarding`, `rejectOffboarding`,
+  `pendingOffboardApprovals`, `cancelOffboarding`),
+  `app/Models/{StaffOnboardingRequest,StaffOffboardRequest}.php`,
+  `app/Console/Commands/Client/Staff/{ActivatePendingStaff,ProcessScheduledOffboarding}Command.php`,
+  `database/migrations/{2026_09_11_000005_create_staff_offboard_requests_table,
+  2026_09_11_000006_create_staff_onboarding_requests_table,
+  2026_09_06_000004_add_offboarding_new_manager_id_column_to_users_table,
+  2026_09_11_000003_standardize_l1_l2_approval_permissions}.php`,
+  `routes/client/BasicInformationRoutes.php` (lines 155–164), `routes/console.php`.
+- **New paths**:
+  `app/Modules/Hr/Services/{StaffOnboarding,StaffOffboarding}.php` (state
+  machines), `app/Modules/Hr/Http/Controllers/{StaffOnboardingController,
+  StaffOffboardingController,DepartureReasonController}.php`,
+  `app/Modules/Hr/Models/{StaffOnboardingRequest,StaffOffboardRequest,DepartureReason}.php`,
+  `app/Modules/Hr/Console/{ActivatePendingStaff,ProcessScheduledOffboarding}Command.php`,
+  `app/Modules/Hr/Exceptions/{WorkflowStateException,ManagerReassignmentRequired}.php`,
+  `app/Modules/Hr/database/migrations/2026_09_25_06000{0..3}_*.php`,
+  changes to `StaffController::create()`/`statusUpdate()`, `HrServiceProvider`,
+  `routes/console.php`. Routes keep SLMS360's paths under `/api/staff/`.
+- **Not ported**:
+  - `ApprovalHistory` — `docs/inventory.md` listed it with this module, but
+    in SLMS360 only leave requests (`StaffLeave`) use it. Moves to the
+    Attendance Hub.
+  - Attendance backfill on approval (`backfillAttendanceForNewStaff`) and
+    the `backfill_attendance` flag — Attendance Hub.
+  - `UserSalary` row on create, account-creation email — as in HR core.
+- **Changed while porting**:
+  - **Security**: `offboardStaff` and `cancelOffboarding` had no permission
+    check (any logged-in staff member could offboard anyone, themselves
+    included) → `manage-staff-member` + self-offboarding refused.
+    `statusUpdate` (rehire) set `active` directly, bypassing the gate —
+    including for candidates an approver had rejected → now goes through
+    `StaffOnboarding::submit()`. `new_manager_id` was `exists:users,id`
+    (any tenant, any status) → tenant-scoped, active, not the leaver.
+    Offboarded users' API tokens are now revoked. Every approve/reject locks
+    the request row (SLMS360 read-then-wrote, so two approvers could
+    double-apply).
+  - **Correctness**: duplicate offboardings for one person are refused (409);
+    approval re-checks the replacement manager is still active; choosing one
+    of the leaver's own reports as the new manager no longer makes them
+    report to themselves; `staff:activate-pending` no longer activates
+    someone whose exit date already passed; onboarding status is derived
+    from `joined_at` at approval time instead of frozen at submission
+    (`intended_status` dropped); cancelling marks the request `cancelled`
+    and also withdraws not-yet-approved requests.
+  - **New**: configurable per-tenant departure reasons with country
+    defaults (from the Odoo comparison in
+    `docs/research/onboarding-offboarding.md`) replace the free-text reason;
+    `users.departure_reason_id` records it for reporting.
+  - **Shape**: state errors are 409 (SLMS360 used 404); "reassign reports
+    first" is a 422 with SLMS360's keys (it was a 200 with `status:false`).
+  - Nightly commands loop tenants with `TenantContext::runAs()` — under RLS
+    a context-less command sees no rows.
+
+---
+
 ## HR core (staff, departments/designations, teams)
 
 - **Source**: SLMS360 @ `fa18b472de1a8b7153191bff42e1536918b4ebda` (tag

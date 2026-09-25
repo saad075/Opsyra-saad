@@ -4,9 +4,9 @@ Source: read-only investigation of `_reference/slms360` (tag `v2.7.1`, commit `f
 and `_reference/toddlersapp` (branch `master`, commit `a22725a9`). No files in either
 reference clone were modified.
 
-> ⚠️ Three findings below **contradict assumptions in the original scope / ADR-001**
-> and are flagged for a decision at Checkpoint 1 rather than silently resolved. See
-> [Decisions needed](#decisions-needed-at-checkpoint-1).
+> ⚠️ Three findings below **contradicted assumptions in the original scope / ADR-001**
+> and were resolved by decision at Checkpoint 1. See
+> [Decisions made](#7-decisions-made-at-checkpoint-1).
 
 ---
 
@@ -93,12 +93,12 @@ Decision legend: **Port** / **Port w/ changes** / **Exclude** / **Duplicate (com
 | Attendance hub | `Client/Attendance/StaffAttendanceController.php`, `HR/Attendance/{Leave,Holiday,Shift}/*`, `Models/StaffAttendance*.php` | None | Port | L |
 | HR dashboard / mgmt insights | `Client/ClientDashboardController.php`, `Client/DashboardsController.php` (raw SQL — see §4) | Verify no student KPIs are mixed in during port | Port w/ changes | M |
 | RBAC (roles + direct permissions) | `spatie/laravel-permission`, `Client/RoleController.php`, inline checks (e.g. `HRMS-Approval-L2`) | None | Port w/ changes — centralize into Laravel Policies while porting (see §6) | M |
-| Staff ID card | **Not found in this backend.** All `idcard`/`badge` hits are for *student* ID cards (excluded/educational). | — | **Flagged — see decisions needed** | — |
+| Staff ID card | **Not found in this backend.** All `idcard`/`badge` hits are for *student* ID cards (excluded/educational). | — | **Build new** — decided at Checkpoint 1 (see §7); no existing logic to adapt, build fresh in Phase 3 | S |
 | Setup wizard | `Client/SetupWizardController.php`, `resources/client-admin/pages/Setup/SetupWizard.vue` | Check wizard steps for school-specific steps mixed with org/HR setup | Port w/ changes | M |
 | Subscription enforcement | `Http/Middleware/CheckClientSubscriptionMiddleware.php` — reads `is_at_trial`/`subscription_ends_at` **directly off the client's `users` row**, not the `Subscription`/`PortalPlan`/`PortalPlanFeature` models that exist but aren't actually read at runtime | None | Port w/ changes — rework to read Opsyra's platform `subscriptions`/`plans` tables | S–M |
 | US federal payroll + tax tables | `Client/Payroll/{GarnishmentOrder,Nec1099,PayrollClassification,PayrollDeduction,Payslip,W2,W4Election,W9Profile,ContractorPayment}Controller.php`, `create_tax_table_cache_tables`, `create_staff_salary_post_{federal,employer}_taxes_table` | None | Port w/ changes — gate behind US-only feature flag | L |
 | Excel import/export engine | **No reusable engine exists.** Only real usage is `Client/Student/StudentBulkImportController.php` (educational), implementing `FromArray`/`WithHeadings` inline — no `app/Imports`/`app/Exports` classes anywhere in the codebase | Only working example is educational | Port w/ changes — extract the pattern into a generic reusable engine, rebuild for HR bulk-import (staff, not students) | M |
-| Task/Project Management | `Client/TaskManagement/*`, `Client/ProjectManagement/*` (7 controllers), `Models/{TaskManagement,TaskAttachment,TaskComment,TaskLog,ProjectTaskProgress}` | None | **Present and functional at v2.7.1 — contradicts "removed in v2.5.0, exclude" instruction. See decisions needed.** | — |
+| Task/Project Management | `Client/TaskManagement/*`, `Client/ProjectManagement/*` (7 controllers), `Models/{TaskManagement,TaskAttachment,TaskComment,TaskLog,ProjectTaskProgress}` | None | **Port** — decided at Checkpoint 1 (see §7); already rebuilt with tenant/branch/permission scoping at v2.7.1 | L |
 | Staff Performance, Staff Evaluation, Leads/CRM, Revenue Reporting, Job Portal | No controllers or models exist for any of the other five | Confirmed absent | Exclude (nothing to exclude-cut, already gone) | — |
 
 **Orphaned migrations** (tables for the 5 confirmed-removed modules, unreferenced by
@@ -119,7 +119,7 @@ job_openings/job_applications migrations), `create_leads_table`,
 | Accounts & fees | Models `StudentFeeStructure(Log)`; Controllers `Client/Accounts/{ClientAccountController,ClientRevenueController,ClientStudentAddHocController,ClientStudentFeeSetupController,BatchInvoiceController,UKAdmissionInvoiceController}.php`; `app/Billing/{StudentFeeCheckout,UkMealFeeCalculator,UkCycleFeeCalculator,FeeStructureAdjustmentService,DiscountApplication,BillingPeriodResolver}.php` | **Heavy** — every fee row FKs to `students.id`; proration/discount/meal-plan logic assumes a student | Port w/ changes — strongest fee-engine candidate (discounts, adjustments, batch invoicing, UK admission-invoice flow are non-trivial and worth keeping), but every `student_id` needs generalizing to a generic billable-entity concept ("fees" → "invoicing" per ADR-001) | L |
 | Billing (platform/subscription billing) | `Client/Billing/ClientBillingController.php`, `Parent/Billing/{BillingController,PaymentController}.php`; Models `WalletTransaction`, `Subscription`, `PortalPlan(Feature)`, `PortalPlanPaymentDetail` | None — this is Brainstormer billing the client, not the client billing its customers | Port w/ changes — this is the closer analog to Opsyra's *platform* `subscriptions`/`plans` tables, not a tenant-facing module. Keep conceptually separate from "Accounts & fees" above | M |
 | "Vouchers" | Same files as Accounts & fees — a "voucher" here is a PDF fee invoice/receipt via `barryvdh/laravel-dompdf`, not a separate subsystem | Heavy (tied to students) | Folded into Accounts & fees generalization, not a standalone port | S |
-| "Double-entry ledger" | `WalletTransaction` model + `wallet_transactions` table (`type: debit/credit`, running `balance_after`) | None | **Does not exist as scoped — single-entry running-balance wallet, not double-entry (no chart of accounts, no journal entries, no AR/AP). See decisions needed.** | — |
+| "Double-entry ledger" | `WalletTransaction` model + `wallet_transactions` table (`type: debit/credit`, running `balance_after`) | None | **Build new** — decided at Checkpoint 1 (see §7); wallet pattern isn't real double-entry bookkeeping, real ledger (chart of accounts, journal entries, AR/AP) is new-build work for a later phase | — |
 | Tenant-resolution layer | N/A | — | See §2 — nothing to port beyond the naming lesson; build new in Phase 2 | — |
 | Staff/HR-adjacent | `Models/{StaffDesignation,StaffAttendance(Date/Shift/ShiftDay/ShiftTime),StaffLeave,StaffHoliday,StaffQualification,StaffSalaryPost(Claim),StaffAdjustment,UserSalary,UkRotaShift,UkStaffAvailability}`, `Client/StaffController.php` | None apparent | **Duplicate (compare)** — see §5 recommendation below. Don't merge silently. | M (comparison) |
 
@@ -203,26 +203,22 @@ separate module — revisit with a concrete comparison once that module's port s
 
 ---
 
-## 7. Decisions needed at Checkpoint 1
+## 7. Decisions made at Checkpoint 1
 
-1. **Task/Project Management (SLMS360)** — present and functional at v2.7.1, already
-   rebuilt with tenant/branch/permission scoping per the v2.7.1 tag message, despite
-   the original scope saying "removed in v2.5.0, exclude." Recommendation: exclude
-   for now per the original instruction (CRM-adjacent, "designed fresh later" logic
-   likely applies), revisit explicitly later rather than silently porting.
-2. **Staff ID card** — no backend implementation exists in SLMS360 at all; only
-   *student* ID cards exist. It likely lives entirely in the SLMS360 Flutter staff
-   app you chose to skip for Phase 1. Options: (a) build a new minimal staff ID
-   card feature from scratch (small effort — template + QR, no existing backend
-   logic to adapt), or (b) pull in the Flutter staff app as a reference now after all,
-   just for this one feature.
-3. **"Double-entry ledger"** — doesn't exist in ToddlersApp; what's there is a
-   single-entry running-balance wallet for *platform* billing (client top-ups/plan
-   purchases), not tenant bookkeeping. If Opsyra needs real double-entry accounting
-   for tenant finance (chart of accounts, journal entries, AR/AP), that's new-build
-   work, not a port — confirm this is acceptable scope for a later phase, or if the
-   wallet pattern is sufficient for now.
-
-Everything else above is either a clear Port/Exclude call already made, or a
-Port-with-changes item whose changes are specified — those don't need a decision
-before Phase 2 starts.
+1. **Task/Project Management (SLMS360)** — **Port.** Already rebuilt at v2.7.1 with
+   tenant/branch/permission scoping per the tag message closing the IDOR gaps that
+   led to its original removal; treated as reusable admin scope rather than
+   excluded. Add to the module inventory as **Port** (was previously listed as
+   excluded/flagged above — table left as-is for provenance, this entry is the
+   authoritative decision). Effort: L (7 controllers, tenant/branch scoping to
+   verify and adapt, own frontend pages).
+2. **Staff ID card** — **Build new later.** No existing backend logic to adapt in
+   either source; build fresh in Phase 3 when that HR sub-feature comes up. No
+   reference pull needed.
+3. **"Double-entry ledger"** — **Build a real double-entry ledger.** ToddlersApp's
+   wallet-transaction pattern is not reused for tenant bookkeeping; this is
+   new-build work (chart of accounts, journal entries, AR/AP) scheduled for a
+   later phase, not a Phase 3 port item pulled from either source. The
+   wallet-transaction pattern may still inform *platform* billing (Brainstormer
+   billing the tenant), which is a separate concern — see §3 "Billing
+   (platform/subscription billing)" row.

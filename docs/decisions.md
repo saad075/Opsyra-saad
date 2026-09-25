@@ -2,6 +2,18 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-24 — Checkpoint 1 decisions
+
+- **Task/Project Management (SLMS360)**: **Port**, not exclude. Already rebuilt at
+  v2.7.1 with tenant/branch/permission scoping, closing the IDOR gaps that caused
+  its original removal — treated as reusable admin scope.
+- **Staff ID card**: **build new** in Phase 3, no reference pull-in needed. Neither
+  backend has staff-card logic to adapt.
+- **Double-entry ledger**: **build a real one** (chart of accounts, journal entries,
+  AR/AP) in a later phase. ToddlersApp's wallet-transaction pattern is not reused
+  for tenant bookkeeping — it may still inform the separate *platform* billing
+  concern (Brainstormer billing the tenant), not tenant accounting.
+
 ## 2026-09-24 — Phase 1 inventory findings
 
 Full detail in `docs/inventory.md`. Three findings corrected assumptions from the

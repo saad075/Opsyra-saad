@@ -1,9 +1,21 @@
 <script setup lang="ts">
-import { BusinessOutline, HomeOutline, LocationOutline, MoonOutline, RocketOutline, SunnyOutline } from '@vicons/ionicons5'
+import {
+  BusinessOutline,
+  HomeOutline,
+  LocationOutline,
+  MoonOutline,
+  PeopleOutline,
+  RocketOutline,
+  SettingsOutline,
+  StatsChartOutline,
+  SunnyOutline,
+  WalletOutline,
+} from '@vicons/ionicons5'
 import { NAvatar, NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu, type MenuOption } from 'naive-ui'
 import { computed, h, ref, type Component } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import BrandMark from '@/components/BrandMark.vue'
+import { PAYROLL_VIEWERS } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 
@@ -16,19 +28,56 @@ const collapsed = ref(false)
 const icon = (component: Component) => () => h(NIcon, null, { default: () => h(component) })
 const link = (name: string, label: string) => () => h(RouterLink, { to: { name } }, { default: () => label })
 
+type Item = MenuOption & { permission?: string | string[]; children?: Item[] }
+
 /**
- * The sidebar shows only what the user's permissions allow. Items for
- * modules without screens yet are added as those screens are built.
+ * Grouped by module, each module opening on its own dashboard (the Horilla
+ * pattern). Only what the user's permissions allow is shown; a group with
+ * nothing visible disappears. Modules add items here as screens are built.
  */
 const menu = computed<MenuOption[]>(() => {
-  const items: (MenuOption & { permission?: string })[] = [
+  const items: Item[] = [
     { key: 'dashboard', label: link('dashboard', 'Home'), icon: icon(HomeOutline) },
-    { key: 'setup', label: link('setup', 'Setup'), icon: icon(RocketOutline), permission: 'HRMS-CompanySettings' },
-    { key: 'company-settings', label: link('company-settings', 'Company'), icon: icon(BusinessOutline), permission: 'HRMS-CompanySettings' },
-    { key: 'branches', label: link('branches', 'Branches'), icon: icon(LocationOutline), permission: 'HRMS-StaffManagement' },
+    {
+      key: 'hr',
+      label: 'HR',
+      icon: icon(PeopleOutline),
+      children: [
+        { key: 'hr-dashboard', label: link('hr-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'branches', label: link('branches', 'Branches'), icon: icon(LocationOutline), permission: 'HRMS-StaffManagement' },
+      ],
+    },
+    {
+      key: 'payroll',
+      label: 'Payroll',
+      icon: icon(WalletOutline),
+      children: [{ key: 'payroll-dashboard', label: link('payroll-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: PAYROLL_VIEWERS }],
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: icon(SettingsOutline),
+      children: [
+        { key: 'setup', label: link('setup', 'Setup'), icon: icon(RocketOutline), permission: 'HRMS-CompanySettings' },
+        { key: 'company-settings', label: link('company-settings', 'Company'), icon: icon(BusinessOutline), permission: 'HRMS-CompanySettings' },
+      ],
+    },
   ]
 
-  return items.filter((item) => !item.permission || auth.can(item.permission))
+  const visible = (item: Item) => !item.permission || auth.canAny(item.permission)
+
+  return items
+    .map((item) => (item.children ? { ...item, children: item.children.filter(visible) } : item))
+    .filter((item) => visible(item) && (!item.children || item.children.length > 0))
+})
+
+// Keep the current page's module open.
+const openGroups = computed(() => {
+  const name = String(route.name)
+  if (name.startsWith('hr-') || name === 'branches') return ['hr']
+  if (name.startsWith('payroll-')) return ['payroll']
+  if (name === 'setup' || name === 'company-settings') return ['settings']
+  return []
 })
 
 const initials = computed(() =>
@@ -68,7 +117,7 @@ async function onUserMenu(key: string) {
       <div class="sider-brand" :class="{ dark: ui.isDark }">
         <BrandMark v-if="!collapsed" />
       </div>
-      <NMenu :value="String(route.name)" :options="menu" :collapsed="collapsed" :collapsed-width="64" />
+      <NMenu :value="String(route.name)" :options="menu" :default-expanded-keys="openGroups" :collapsed="collapsed" :collapsed-width="64" />
     </NLayoutSider>
 
     <NLayout>

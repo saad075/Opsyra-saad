@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Payroll\Http\Controllers\PayComponentController;
+use App\Modules\Payroll\Http\Controllers\PayrollDashboardController;
 use App\Modules\Payroll\Http\Controllers\PayRunController;
 use App\Modules\Payroll\Http\Controllers\PayslipController;
 use App\Modules\Payroll\Http\Controllers\SalaryAdjustmentController;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 // SLMS360's salary routes mixed setup, runs and self-service under one
 // prefix, and its fixed-column shape doesn't carry over.
 Route::middleware('auth:sanctum')->prefix('payroll')->group(function () {
+    Route::get('dashboard', PayrollDashboardController::class);
+
     Route::prefix('pay-components')->group(function () {
         Route::get('list', [PayComponentController::class, 'index']);
         Route::post('create', [PayComponentController::class, 'store']);

@@ -21,6 +21,10 @@ export const useAuthStore = defineStore('auth', () => {
     return me.value?.permissions.includes(permission) ?? false
   }
 
+  function canAny(permissions: string | string[]): boolean {
+    return (Array.isArray(permissions) ? permissions : [permissions]).some(can)
+  }
+
   async function login(input: { client_code: string; email: string; password: string }): Promise<void> {
     const { data } = await api.post<ApiEnvelope<{ token: string; must_change_password: boolean }>>('/auth/login', {
       ...input,
@@ -60,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
     writeToken(value)
   }
 
-  return { token, me, isAuthenticated, mustChangePassword, can, login, fetchMe, logout, changePassword, forget }
+  return { token, me, isAuthenticated, mustChangePassword, can, canAny, login, fetchMe, logout, changePassword, forget }
 })
 
 /** The last client code used on this device, so staff type it once. */

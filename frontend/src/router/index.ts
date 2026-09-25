@@ -7,11 +7,14 @@ declare module 'vue-router' {
     guest?: boolean
     /** Open to anyone, signed in or not (reset link from an email). */
     public?: boolean
-    /** Hide the screen unless the user holds this permission. The API still checks. */
-    permission?: string
+    /** Hide the screen unless the user holds this permission (or any of these). The API still checks. */
+    permission?: string | string[]
     title?: string
   }
 }
+
+/** Payroll staff, or anyone who approves pay (mirrors the API's view-payroll gate). */
+export const PAYROLL_VIEWERS = ['HRMS-SalaryManagement', 'HRMS-Approval-L1', 'HRMS-Approval-L2']
 
 export const routes: RouteRecordRaw[] = [
   // Order matters: both layouts sit at "/", and on a tie Vue Router picks
@@ -25,6 +28,8 @@ export const routes: RouteRecordRaw[] = [
       { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: 'Home' } },
       { path: 'setup', name: 'setup', component: () => import('@/views/setup/SetupWizardView.vue'), meta: { title: 'Setup', permission: 'HRMS-CompanySettings' } },
       { path: 'settings/company', name: 'company-settings', component: () => import('@/views/settings/CompanySettingsView.vue'), meta: { title: 'Company details', permission: 'HRMS-CompanySettings' } },
+      { path: 'hr/dashboard', name: 'hr-dashboard', component: () => import('@/views/hr/HrDashboardView.vue'), meta: { title: 'HR dashboard', permission: 'HRMS-StaffManagement' } },
+      { path: 'payroll/dashboard', name: 'payroll-dashboard', component: () => import('@/views/payroll/PayrollDashboardView.vue'), meta: { title: 'Payroll dashboard', permission: PAYROLL_VIEWERS } },
       { path: 'hr/branches', name: 'branches', component: () => import('@/views/hr/BranchesView.vue'), meta: { title: 'Branches', permission: 'HRMS-StaffManagement' } },
     ],
   },
@@ -67,7 +72,7 @@ export async function guard(to: RouteLocationNormalized) {
 
   if (auth.mustChangePassword && to.name !== 'change-password') return { name: 'change-password' }
 
-  if (to.meta.permission && !auth.can(to.meta.permission)) return { name: 'dashboard' }
+  if (to.meta.permission && !auth.canAny(to.meta.permission)) return { name: 'dashboard' }
 
   return true
 }

@@ -41,25 +41,25 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   runs (queued), itemised payslips, L1→L2 approval, transfer/cheque,
   carry-forward, salary queries. Attendance deductions plug in later via
   `PayslipContributor`. See `docs/research/salaries.md`.
-- **125/125 tests passing**, all against real Postgres 17 + Memurai (not
+- **Phase 3, module 6 — Setup wizard** (new `app/Modules/Setup`, moved up
+  by the user): live-computed progress across every module's steps, each
+  module registering its own via `SetupStepProvider`; data steps and
+  "review the defaults" steps; skip / come back; company profile settings
+  (name, address, timezone, currency); branch management (was a gap). See
+  `docs/research/setup-wizard.md`. **Rule: any new module that adds
+  per-company configuration must register setup steps for it.**
+- **139/139 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
 ## Not done yet (Phase 3 continues)
 
-**Next: the Setup wizard, moved up** (user,
-2026-09-25): with the configurable Frappe/Horilla-style approach, a
-company must be walked through configuring everything at initial setup.
-Scope: company details, branches/departments, roles + L1/L2 approvers,
-departure reasons, checklist templates, pay components + pay frequency,
-then per-employee salary and bank details. Needs a progress indicator and
-the ability to skip a step and come back. Backend: a per-tenant "setup
-status" API reporting what's configured and what's missing. Every new
-module's settings must be added to it. Then, per `docs/inventory.md`: attendance hub (picks up `ApprovalHistory` and the attendance backfill
-on onboarding approval), HR dashboard, staff ID card (build new — no source
-to port), setup wizard, subscription enforcement, US payroll, Excel engine,
-then ToddlersApp's accounts/fees/billing/ledger (ledger is new-build — see
-Checkpoint 1 decisions).
+Next, per `docs/inventory.md`: **attendance hub** (plugs deductions into
+payslips via `PayslipContributor`; picks up `ApprovalHistory`, the
+attendance backfill on onboarding approval, and hourly pay), HR dashboard,
+staff ID card (build new: no source to port), subscription enforcement, US
+payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
+(ledger is new-build — see Checkpoint 1 decisions).
 
 **Frontend: no stack chosen yet.** Discussed with the user 2026-09-24 —
 recommendation is a Vue 3 app on the existing Sanctum API (same family as
@@ -85,7 +85,7 @@ nothing to launch manually.
 
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
-php artisan test            # should show 125 passed
+php artisan test            # should show 139 passed
 php artisan serve           # http://localhost:8000
 ```
 
@@ -106,20 +106,22 @@ which is expected.
 - `docker-compose.yml`/`docker/` are written but **unverified** — no Docker
   on this machine; everything so far was built and tested against the native
   Postgres/Memurai install instead (see `docs/decisions.md`, 2026-09-25 entry).
-- No CRUD routes exist yet for `branches` themselves (full branch
-  management) — the HR core module only created the table as a staff-CRUD
-  dependency; see `docs/provenance.md`'s HR core entry.
 - Staff ID card, US payroll tax tables, and the double-entry ledger are all
   confirmed new-build items (no source to port) per Checkpoint 1 — not
   started.
 - **"Today" is UTC for every tenant.** The nightly jobs and immediate-vs-
   scheduled exit decisions use the app timezone; a Pakistan or Oman tenant's
-  midnight isn't UTC midnight. Needs a per-tenant/country timezone.
+  midnight isn't UTC midnight. The company timezone is now stored
+  (`TenantSetting::get('timezone')`, set in the Setup wizard) and branches
+  have their own; the jobs don't use them yet.
 - **No login endpoint yet**, and nothing blocks a non-active user
   (`pending_approval`, `offboarded`) from using an existing API token other
   than offboarding revoking tokens. Needs a status check once auth is built.
 - **No permission seeder** — permissions (`HRMS-StaffManagement`,
-  `HRMS-Approval-L2`, …) are only created in tests so far.
+  `HRMS-Approval-L2`, `HRMS-SalaryManagement`, `HRMS-CompanySettings`, …)
+  are only created in tests so far. Also: nothing gives a new tenant's first
+  admin `HRMS-CompanySettings`, so nobody could open the Setup wizard. Both
+  are needed before the first real company (tenant provisioning).
 - `_reference/` now also holds design-reference clones (Frappe HRMS,
   Horilla, Odoo, Krayin, OroCRM) — ideas only, no code copying; see
   `docs/decisions.md` for the licence policy.

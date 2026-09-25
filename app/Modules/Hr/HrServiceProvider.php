@@ -9,7 +9,9 @@ use App\Modules\Hr\Models\ChecklistTemplate;
 use App\Modules\Hr\Models\DepartureReason;
 use App\Modules\Hr\Models\StaffChecklist;
 use App\Modules\Hr\Models\StaffChecklistTask;
+use App\Modules\Hr\Setup\HrSetupSteps;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Setup\Contracts\SetupStepProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +26,11 @@ use Illuminate\Support\ServiceProvider;
  */
 class HrServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->app->tag(HrSetupSteps::class, SetupStepProvider::TAG);
+    }
+
     public function boot(): void
     {
         Gate::define('manage-hr', function (User $user) {

@@ -20,6 +20,10 @@ class Branch extends Model
     protected $fillable = [
         'name',
         'status',
+        'address',
+        'city',
+        'phone',
+        'timezone',
     ];
 
     protected function casts(): array

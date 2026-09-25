@@ -9,6 +9,7 @@ use App\Modules\Payroll\Models\StaffSalary;
 use App\Modules\Payroll\Services\SalaryCalculator;
 use App\Modules\Payroll\Support\Money;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Setup\Models\TenantSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule as ValidationRule;
@@ -60,7 +61,9 @@ class StaffSalaryController extends Controller
             }
         }
 
-        $currency = strtoupper($validated['currency'] ?? Money::currencyForCountry(Tenant::findOrFail($tenantId)->country));
+        $currency = strtoupper($validated['currency']
+            ?? TenantSetting::get('currency')
+            ?? Money::currencyForCountry(Tenant::findOrFail($tenantId)->country));
 
         $salary = DB::transaction(function () use ($validated, $currency, $request) {
             $salary = StaffSalary::updateOrCreate(

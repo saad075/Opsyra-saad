@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Hr\Http\Controllers\BranchController;
 use App\Modules\Hr\Http\Controllers\ChecklistTemplateController;
 use App\Modules\Hr\Http\Controllers\DepartmentController;
 use App\Modules\Hr\Http\Controllers\DepartureReasonController;
@@ -13,6 +14,13 @@ use Illuminate\Support\Facades\Route;
 // ResolveTenantFromUser already runs for every /api route (see
 // bootstrap/app.php) — only auth:sanctum needs adding here.
 Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('branches')->group(function () {
+        Route::get('list', [BranchController::class, 'index']);
+        Route::post('create', [BranchController::class, 'store']);
+        Route::post('update', [BranchController::class, 'update']);
+        Route::post('delete', [BranchController::class, 'destroy']);
+    });
+
     Route::prefix('departments')->group(function () {
         Route::get('list', [DepartmentController::class, 'index']);
         Route::post('create', [DepartmentController::class, 'store']);

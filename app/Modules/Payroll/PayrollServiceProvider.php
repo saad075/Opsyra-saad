@@ -4,7 +4,9 @@ namespace App\Modules\Payroll;
 
 use App\Models\User;
 use App\Modules\Payroll\Models\PayComponent;
+use App\Modules\Payroll\Setup\PayrollSetupSteps;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Setup\Contracts\SetupStepProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,6 +21,11 @@ use Illuminate\Support\ServiceProvider;
  */
 class PayrollServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->app->tag(PayrollSetupSteps::class, SetupStepProvider::TAG);
+    }
+
     public function boot(): void
     {
         Gate::define('manage-salaries', fn (User $user) => $user->can('HRMS-SalaryManagement'));

@@ -2,6 +2,35 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Phase 3, module 6: Setup wizard (new `Setup` module)
+
+Moved up by the user, so that a company can be walked through configuring
+everything at initial setup. Research is in `docs/research/setup-wizard.md`.
+
+- **Completion is computed live from the data**, never stored (the
+  SLMS360 and Horilla approach), so it can't drift however the data was
+  entered. Only the admin's choices are stored: skipped, or reviewed.
+- **Each module registers its own steps** (`SetupStepProvider`, container
+  tag `setup.step_providers`). Company steps live in Setup, HR steps in Hr,
+  and payroll steps in Payroll. A new module with per-company settings
+  must add steps, which is now an explicit rule in `docs/status.md`.
+- **"Review" steps** for anything pre-filled from country defaults
+  (leaving reasons, checklist templates, pay components). Those are never
+  empty, so "done" means an admin has confirmed them. Data steps can't be
+  ticked off by hand.
+- Skipping moves the wizard on but never counts as complete for a
+  required step.
+- **New permission `HRMS-CompanySettings`**; SLMS360 guarded its
+  organisation settings with nothing. Each step's own screens keep their
+  own permissions.
+- **Company profile** in a per-tenant key/value `tenant_settings` table.
+  The currency setting now drives new salaries' default currency. The
+  timezone is stored but not yet used by the nightly jobs.
+- **Branch management built** (was an open gap), with address, city,
+  phone and a per-branch timezone.
+- Dropped from SLMS360's wizard: the classes and students steps (school
+  only).
+
 ## 2026-09-25 — Phase 3, module 5: Salaries hub (new `Payroll` module)
 
 Research and the user's three choices are in `docs/research/salaries.md`;

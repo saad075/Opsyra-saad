@@ -3,6 +3,7 @@
 use App\Modules\Hr\HrServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
 use App\Modules\Rbac\RbacServiceProvider;
+use App\Modules\Setup\SetupServiceProvider;
 use App\Modules\Tenancy\TenancyServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\ModulesServiceProvider;
@@ -13,5 +14,6 @@ return [
     RbacServiceProvider::class,
     HrServiceProvider::class,
     PayrollServiceProvider::class,
+    SetupServiceProvider::class,
     ModulesServiceProvider::class,
 ];

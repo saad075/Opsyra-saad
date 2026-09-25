@@ -5,7 +5,10 @@ namespace App\Modules\Hr;
 use App\Models\User;
 use App\Modules\Hr\Console\ActivatePendingStaffCommand;
 use App\Modules\Hr\Console\ProcessScheduledOffboardingCommand;
+use App\Modules\Hr\Models\ChecklistTemplate;
 use App\Modules\Hr\Models\DepartureReason;
+use App\Modules\Hr\Models\StaffChecklist;
+use App\Modules\Hr\Models\StaffChecklistTask;
 use App\Modules\Platform\Models\Tenant;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -43,8 +46,32 @@ class HrServiceProvider extends ServiceProvider
             return $user->can('HRMS-Approval-L2');
         });
 
-        // Every new tenant starts with its country's default departure reasons.
-        Tenant::created(fn (Tenant $tenant) => DepartureReason::seedDefaultsFor($tenant));
+        // Checklists: HR sees everything; the staff member sees their own
+        // onboarding/offboarding; anyone with a task on it sees the whole
+        // list (context for their part of it).
+        Gate::define('view-staff-checklist', function (User $user, StaffChecklist $checklist) {
+            if ($checklist->tenant_id !== $user->tenant_id) {
+                return false;
+            }
+
+            return $user->can('HRMS-StaffManagement')
+                || $checklist->user_id === $user->id
+                || $checklist->tasks->contains(fn (StaffChecklistTask $task) => $task->isAssignedTo($user));
+        });
+
+        // A task can be ticked off by its assignee (named or via role), or
+        // by HR — which also covers tasks that resolved to nobody.
+        Gate::define('complete-checklist-task', function (User $user, StaffChecklistTask $task) {
+            return $task->tenant_id === $user->tenant_id
+                && ($user->can('HRMS-StaffManagement') || $task->isAssignedTo($user));
+        });
+
+        // Every new tenant starts with its country's default departure
+        // reasons and a starter onboarding + offboarding checklist.
+        Tenant::created(function (Tenant $tenant) {
+            DepartureReason::seedDefaultsFor($tenant);
+            ChecklistTemplate::seedDefaultsFor($tenant);
+        });
 
         if ($this->app->runningInConsole()) {
             $this->commands([

@@ -1,7 +1,9 @@
 <?php
 
+use App\Modules\Hr\Http\Controllers\ChecklistTemplateController;
 use App\Modules\Hr\Http\Controllers\DepartmentController;
 use App\Modules\Hr\Http\Controllers\DepartureReasonController;
+use App\Modules\Hr\Http\Controllers\StaffChecklistController;
 use App\Modules\Hr\Http\Controllers\StaffController;
 use App\Modules\Hr\Http\Controllers\StaffOffboardingController;
 use App\Modules\Hr\Http\Controllers\StaffOnboardingController;
@@ -49,6 +51,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('offboard/approve', [StaffOffboardingController::class, 'approve']);
         Route::post('offboard/reject', [StaffOffboardingController::class, 'reject']);
         Route::get('offboard/pending-approvals', [StaffOffboardingController::class, 'pendingApprovals']);
+    });
+
+    Route::prefix('checklist-templates')->group(function () {
+        Route::get('list', [ChecklistTemplateController::class, 'index']);
+        Route::post('create', [ChecklistTemplateController::class, 'store']);
+        Route::post('update', [ChecklistTemplateController::class, 'update']);
+        Route::post('delete', [ChecklistTemplateController::class, 'destroy']);
+    });
+
+    Route::prefix('checklists')->group(function () {
+        Route::get('list', [StaffChecklistController::class, 'index']);
+        Route::post('show', [StaffChecklistController::class, 'show']);
+        Route::post('start', [StaffChecklistController::class, 'start']);
+        Route::post('add-task', [StaffChecklistController::class, 'addTask']);
+        Route::post('cancel', [StaffChecklistController::class, 'cancel']);
+        Route::get('my-tasks', [StaffChecklistController::class, 'myTasks']);
+        Route::post('task/update', [StaffChecklistController::class, 'updateTask']);
     });
 
     Route::prefix('departure-reasons')->group(function () {

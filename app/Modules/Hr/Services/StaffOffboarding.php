@@ -22,8 +22,10 @@ use Illuminate\Support\Facades\DB;
  */
 class StaffOffboarding
 {
+    public function __construct(private StaffChecklists $checklists) {}
+
     /**
-     * @param  array{last_working_day: string, departure_reason_id: int, note?: ?string, new_manager_id?: ?int}  $data
+     * @param  array{last_working_day: string, departure_reason_id: int, note?: ?string, new_manager_id?: ?int, checklist_template_id?: ?int}  $data
      */
     public function submit(User $staff, User $requester, array $data): StaffOffboardRequest
     {
@@ -59,6 +61,7 @@ class StaffOffboarding
                 'new_manager_id' => $data['new_manager_id'] ?? null,
                 'direct_reports_count' => $directReportsCount,
                 'status' => 'pending',
+                'checklist_template_id' => $data['checklist_template_id'] ?? null,
             ]);
 
             if ($requester->can('approve-hr-requests')) {
@@ -88,6 +91,15 @@ class StaffOffboarding
                 'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
+
+            $this->checklists->start(
+                $locked->staff,
+                'offboarding',
+                $locked->last_working_day,
+                $locked->checklist_template_id,
+                $reviewer,
+                ['staff_offboard_request_id' => $locked->id],
+            );
         });
     }
 
@@ -138,11 +150,15 @@ class StaffOffboarding
                 'offboarding_new_manager_id' => null,
             ]);
 
-            StaffOffboardRequest::where('user_id', $staff->id)
+            $approved = StaffOffboardRequest::where('user_id', $staff->id)
                 ->where('status', 'approved')
                 ->latest('id')
-                ->first()
-                ?->update(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => now()]);
+                ->first();
+
+            if ($approved) {
+                $approved->update(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => now()]);
+                $this->checklists->cancelForOffboardRequest($approved->id);
+            }
         });
     }
 

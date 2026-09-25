@@ -14,6 +14,7 @@ class StaffOnboardingRequest extends Model
         'user_id',
         'requested_by',
         'status',
+        'checklist_template_id',
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',

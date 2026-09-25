@@ -4,9 +4,13 @@ namespace Tests\Feature\Hr;
 
 use App\Models\User;
 use App\Modules\Hr\Models\Branch;
+use App\Modules\Hr\Models\ChecklistTemplate;
+use App\Modules\Hr\Models\ChecklistTemplateTask;
 use App\Modules\Hr\Models\Department;
 use App\Modules\Hr\Models\DepartureReason;
 use App\Modules\Hr\Models\Designation;
+use App\Modules\Hr\Models\StaffChecklist;
+use App\Modules\Hr\Models\StaffChecklistTask;
 use App\Modules\Hr\Models\StaffOffboardRequest;
 use App\Modules\Hr\Models\StaffOnboardingRequest;
 use App\Modules\Hr\Models\UserBranch;
@@ -88,6 +92,39 @@ class HrIsolationTest extends TestCase
                 'departure_reason_id' => DepartureReason::where('name', 'Resignation')->value('id'),
                 'status' => 'pending',
             ]);
+        });
+    }
+
+    public function test_checklist_templates_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(
+            ChecklistTemplate::class,
+            fn () => ChecklistTemplate::create(['type' => 'onboarding', 'name' => 'B only']),
+        );
+    }
+
+    public function test_checklist_template_tasks_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(
+            ChecklistTemplateTask::class,
+            fn () => ChecklistTemplate::defaultFor('onboarding')->tasks()->create(['title' => 'B task', 'assignee_type' => 'employee']),
+        );
+    }
+
+    public function test_staff_checklists_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(
+            StaffChecklist::class,
+            fn () => StaffChecklist::create(['user_id' => $this->userB->id, 'type' => 'onboarding', 'anchor_date' => today()]),
+        );
+    }
+
+    public function test_staff_checklist_tasks_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(StaffChecklistTask::class, function () {
+            $checklist = StaffChecklist::create(['user_id' => $this->userB->id, 'type' => 'onboarding', 'anchor_date' => today()]);
+
+            return $checklist->tasks()->create(['title' => 'B task', 'assignee_user_id' => $this->userB->id]);
         });
     }
 

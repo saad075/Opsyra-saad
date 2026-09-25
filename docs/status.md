@@ -28,16 +28,20 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   `staff:activate-pending` / `staff:process-offboarding` looping every
   tenant. Scope chosen after comparing Frappe HRMS, Horilla and Odoo
   (`docs/research/onboarding-offboarding.md`).
-- **76/76 tests passing**, all against real Postgres 17 + Memurai (not
+- **Phase 3, module 4 — onboarding/offboarding checklists** (new build, no
+  SLMS360 source): per-tenant templates whose tasks go to the staff
+  member's manager, the staff member, a role, or a named person, due N days
+  before/after the start date or last working day. Approval starts a
+  checklist from the chosen or default template; "my tasks" plus ticking
+  off; the checklist completes itself when every task is done or skipped.
+  Every tenant starts with a starter onboarding and offboarding template.
+- **90/90 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
 ## Not done yet (Phase 3 continues)
 
-Next: **onboarding/offboarding checklist** — templates, a task list per
-person assigned to a role or "their manager", status derived from the
-tasks. Agreed with the user as its own module, layered on the approval gate
-(see the research doc's takeaways). Then, per `docs/inventory.md`: salaries
+Next, per `docs/inventory.md`: salaries
 hub, attendance hub (picks up `ApprovalHistory` and the attendance backfill
 on onboarding approval), HR dashboard, staff ID card (build new — no source
 to port), setup wizard, subscription enforcement, US payroll, Excel engine,
@@ -50,6 +54,16 @@ SLMS360, one backend path shared with the Flutter app, own design rather
 than Quasar's). The user liked Horilla's demo as a layout reference. Decide
 before building any screens.
 
+**Test deployment: on hold until the frontend is ready** (user decision,
+2026-09-24). Target is `opsyra.brainstormertech.com` on BrainStormers'
+existing server, alongside SLMS360. DNS is at the domain registrar; the user
+adds the A record. Unconfirmed: the server is probably `203.161.41.187`
+(the only non-GitHub host in this PC's `~/.ssh/known_hosts`), and SLMS360's
+root `.htaccess` suggests Apache, possibly under cPanel. Nobody has
+connected to it yet: ask before any SSH, starting read-only. Hard
+requirement when it happens: the app's Postgres role must not be a
+superuser or have BYPASSRLS, or tenant isolation silently switches off.
+
 ## How to resume locally
 
 Check `git status` / `git log` for what's committed. PostgreSQL 17 and Memurai are both Windows services set
@@ -58,7 +72,7 @@ nothing to launch manually.
 
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
-php artisan test            # should show 76 passed
+php artisan test            # should show 90 passed
 php artisan serve           # http://localhost:8000
 ```
 

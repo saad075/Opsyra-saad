@@ -122,6 +122,11 @@ class StaffController extends Controller
             'address' => ['nullable', 'string'],
             'city' => ['nullable', 'string'],
             'zip_code' => ['nullable', 'string'],
+            // Which onboarding checklist to start on approval; omitted = the tenant's default.
+            'checklist_template_id' => [
+                'nullable', 'integer',
+                ValidationRule::exists('checklist_templates', 'id')->where('tenant_id', $tenantId)->where('type', 'onboarding')->where('is_active', true),
+            ],
         ]);
 
         [$user, $onboardingRequest] = DB::transaction(fn () => $this->createStaff($request, $validated));
@@ -179,7 +184,7 @@ class StaffController extends Controller
         }
         $user->branches()->first()?->update(['status' => true]);
 
-        return [$user, app(StaffOnboarding::class)->submit($user, $request->user())];
+        return [$user, app(StaffOnboarding::class)->submit($user, $request->user(), $validated['checklist_template_id'] ?? null)];
     }
 
     public function update(Request $request)

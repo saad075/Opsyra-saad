@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\DB;
  */
 class StaffOnboarding
 {
-    public function submit(User $staff, User $requester): StaffOnboardingRequest
+    public function __construct(private StaffChecklists $checklists) {}
+
+    public function submit(User $staff, User $requester, ?int $checklistTemplateId = null): StaffOnboardingRequest
     {
         $staff->update(['status' => 'pending_approval']);
 
@@ -28,6 +30,7 @@ class StaffOnboarding
             'user_id' => $staff->id,
             'requested_by' => $requester->id,
             'status' => 'pending',
+            'checklist_template_id' => $checklistTemplateId,
         ]);
 
         if ($requester->can('approve-hr-requests')) {
@@ -51,6 +54,17 @@ class StaffOnboarding
                 'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
+
+            // Created on approval, not submission — a rejected candidate
+            // never gets a checklist handed out to their future colleagues.
+            $this->checklists->start(
+                $staff,
+                'onboarding',
+                $staff->joined_at,
+                $locked->checklist_template_id,
+                $reviewer,
+                ['staff_onboarding_request_id' => $locked->id],
+            );
         });
     }
 

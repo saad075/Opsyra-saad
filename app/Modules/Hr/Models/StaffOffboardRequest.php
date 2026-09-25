@@ -19,6 +19,7 @@ class StaffOffboardRequest extends Model
         'new_manager_id',
         'direct_reports_count',
         'status',
+        'checklist_template_id',
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',

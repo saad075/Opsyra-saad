@@ -44,6 +44,11 @@ class StaffOffboardingController extends Controller
                 'nullable', 'integer', 'different:id',
                 ValidationRule::exists('users', 'id')->where('tenant_id', $tenantId)->where('status', 'active'),
             ],
+            // Which offboarding checklist to start on approval; omitted = the tenant's default.
+            'checklist_template_id' => [
+                'nullable', 'integer',
+                ValidationRule::exists('checklist_templates', 'id')->where('tenant_id', $tenantId)->where('type', 'offboarding')->where('is_active', true),
+            ],
         ]);
 
         $staff = User::findOrFail($validated['id']);

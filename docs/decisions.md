@@ -2,6 +2,39 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-24 — Phase 3, module 4: onboarding/offboarding checklists
+
+New build: SLMS360 has no equivalent. Design taken from the
+pattern Frappe HRMS, Horilla and Odoo share (ideas only, no code; see
+`docs/research/onboarding-offboarding.md`):
+
+- **Checklists start on approval, not submission.** A rejected hire never
+  hands tasks to future colleagues. Frappe's "tasks that block creating the
+  employee" was not adopted: the L2 gate is already the blocker, and
+  keeping the checklist separate means approval never fails for lack of a
+  template.
+- **Assignees are resolved once, when the checklist is created** (Odoo's
+  manager/employee idea, plus Frappe's role pools). A later change of
+  manager doesn't move tasks already handed out. Tasks that resolve to
+  nobody (no manager, or a named user who has left) stay visible to HR,
+  who can complete any task.
+- **Tasks are copied from the template**, so editing or deleting a template
+  never changes a checklist already under way. That's why deleting a
+  template is always allowed.
+- **Status is derived:** complete when every task is done or skipped,
+  reopened if a task goes back to todo. Required tasks can't be skipped.
+  Progress is shown as counts (`tasks_count`, `closed_tasks_count`,
+  `overdue_tasks_count`), not a stored percentage.
+- One default template per type per tenant, enforced by a Postgres partial
+  unique index as well as in code.
+- Deferred: skipping holidays when working out due dates (needs the
+  Attendance Hub's holiday data), email/notification of new tasks (no mail
+  templates yet), and Horilla's self-service portal for new hires.
+- For an exit that applies immediately, the leaver's own tasks (e.g.
+  "hand over work") land on someone who has just lost API access. HR
+  completes those, which is acceptable but worth revisiting when the
+  frontend exists.
+
 ## 2026-09-24 — Phase 3, module 3: onboarding/offboarding approvals
 
 Full detail in `docs/provenance.md`. Highlights:

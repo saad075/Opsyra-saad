@@ -61,6 +61,11 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   password change for temporary passwords, password reset by email, login
   history. Also **fixed a latent bug: real bearer tokens never worked
   under RLS** (see `docs/decisions.md`).
+- **Frontend, first slice** (`frontend/`, Vue 3 + TypeScript + Naive UI;
+  see `docs/decisions.md`): sign in, forgot/reset password, forced
+  password change, app shell with a permission-filtered sidebar and
+  light/dark mode, the Setup wizard, Company details, Branches. 6 unit
+  tests on the routing rules; type-check and production build pass.
 - **159/159 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
@@ -105,7 +110,13 @@ nothing to launch manually.
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
 php artisan test            # should show 159 passed
-php artisan serve           # http://localhost:8000
+php artisan serve           # API on http://localhost:8000
+
+cd frontend
+npm install                 # first time only
+npm run dev                 # app on http://localhost:5173 (proxies /api to :8000)
+npm test                    # frontend unit tests
+npm run build               # type-check + production build
 ```
 
 If either service isn't running for some reason:

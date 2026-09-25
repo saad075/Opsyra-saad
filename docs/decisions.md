@@ -2,6 +2,78 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Pricing structure (Central)
+
+User direction: keep "plans coming soon" on the site for now, but put the
+structure in place for **feature tiers with per-employee pricing**, fully
+configurable by the super admin per country.
+
+- **Plans** (tiers) have a name, description, order, "offered" flag, and a
+  set of **features** from a fixed catalogue (`config/opsyra.php`; roadmap
+  features are marked "coming soon"). Feature codes are stable because
+  they'll be pushed to country deployments for enforcement.
+- **Price per plan per country** is three numbers: starting monthly
+  price, employees included, and price per extra employee. So monthly =
+  `base + max(0, employees − included) × extra`, rounded per currency
+  (OMR has three decimals). Three plans × three numbers = the "9 numbers
+  per country" the user described.
+- **Publishing is per country.** Unpublished (the default) keeps "plans
+  coming soon" on the site. A country can't be published until every
+  offered plan has a price there.
+- **Starter data:** Base / Plus / Premium with the user's example US
+  prices ($15 / $30 / $50 for up to 10 employees, then $1 / $1.50 / $2
+  each), saved as an unpublished draft. Other countries are empty. Plan
+  names and features-per-tier are placeholders for the user to decide.
+- **Super-admin area** in Central (`/admin`): Central's own `users` table
+  holds BrainStormers staff, with session login and throttling, entirely
+  separate from company staff. Create an admin or reset a password with
+  `php artisan central:admin`.
+
+## 2026-09-25 — The product starts at the landing website (Central brought forward)
+
+The user reviewed the first app screens and said Opsyra must start the way
+their SonariAI product does (https://sonariai.us/, code in
+`Software/MAI`, built with Next.js): a landing website with Demo, Log in
+and Get started, then the next steps. Decisions:
+
+- **The website is part of Opsyra Central**: Laravel with server-rendered
+  Blade pages and Tailwind, in `central/` in this repo, deployed
+  separately. Central's billing and super-admin follow later, as agreed.
+- **Central hosts the global directory** (client code → country URL),
+  where ADR-001 placed it. **Log in** asks for the company code and
+  redirects to that country's app sign-in with the code filled in.
+- **Get started = free trial, no card.** Central asks the country
+  deployment to provision the company over a signed server-to-server
+  call. The country deployment emails the admin their temporary password,
+  so Central never handles it.
+- **Demo = a live sample company, like Horilla's demo**
+  (hr.demo.horilla.com): one click into a fully populated Demo Company,
+  with the credentials shown on the sign-in page, rebuilt nightly. The
+  demo account can't change its password or trigger emails, so visitors
+  can't lock each other out.
+
+## 2026-09-25 — Frontend stack
+
+- **Vue 3 + TypeScript + Vite** in `frontend/` (same repo), with Vue Router,
+  Pinia and axios. It talks to the API with the same Sanctum bearer tokens
+  as the future mobile app, which the user confirmed. In dev, Vite proxies
+  `/api` to Laravel, so there's no CORS. Production hosting and CORS are
+  decided with the test deployment.
+- **UI kit: Naive UI (MIT, confirmed from its LICENSE file)**, with
+  `@vicons/ionicons5` (MIT). **Not PrimeVue:** since v5 it's under the
+  commercial "PrimeUI License" (licence key; free only for organisations
+  under 10 employees / $1M revenue / 5 developers, renewed yearly;
+  otherwise paid per developer), despite an MIT badge in its README. It
+  was installed, spotted and removed. **Check a UI package's LICENSE file,
+  not just npm's field or badge.**
+- **Brand** taken from ADR-001's page: teal accent `#0E6E62` (dark
+  `#5CC4B4`), ink `#16202A`, background `#F6F7F9`; Plus Jakarta Sans for
+  headings and Source Sans 3 for body text; light and dark themes.
+- **Layout reference: Horilla**, which the user reviewed. Ideas only.
+- **The token is kept in `localStorage`** for now, simplest for a
+  bearer-token SPA. Revisit with a strict Content-Security-Policy, or
+  cookie-based SPA auth, before production.
+
 ## 2026-09-25 — Login / auth (new `Auth` module)
 
 - **Fixed a latent bug: real bearer tokens never worked.** Sanctum finds

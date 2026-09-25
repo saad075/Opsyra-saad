@@ -1,0 +1,33 @@
+# Reference-only clones of SLMS360 and ToddlersApp — never committed, never pushed to.
+# See docs/decisions.md for the read-only reference policy.
+/_reference/
+
+# Laravel / PHP
+/vendor/
+.env
+.env.*
+!.env.example
+/storage/*.key
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Node / frontend
+/node_modules/
+/public/hot
+/public/storage
+/public/build
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+/.phpunit.cache
+/coverage/

@@ -1,0 +1,288 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Opsyra ADR-001</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --ink:#16202A; --muted:#5A6774;
+  --line:#DCE1E7; --accent:#0E6E62; --accent-bg:#E3F1EE;
+  --warn:#8A5A00; --warn-bg:#FBF0DA; --no:#A23B45; --no-bg:#F9E6E8;
+  --code-bg:#EEF1F4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11161C; --surface:#182029; --ink:#E6EAEE; --muted:#9AA6B2;
+    --line:#2A3440; --accent:#5CC4B4; --accent-bg:#17332F;
+    --warn:#E2B35C; --warn-bg:#352A12; --no:#EE8C96; --no-bg:#3A1D21;
+    --code-bg:#1E2833;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11161C; --surface:#182029; --ink:#E6EAEE; --muted:#9AA6B2;
+  --line:#2A3440; --accent:#5CC4B4; --accent-bg:#17332F;
+  --warn:#E2B35C; --warn-bg:#352A12; --no:#EE8C96; --no-bg:#3A1D21;
+  --code-bg:#1E2833;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 "Source Sans 3",-apple-system,"Segoe UI",sans-serif;padding-inline:16px}
+.wrap{max-width:780px;margin:0 auto;padding-block:40px 80px;display:flex;flex-direction:column;gap:36px}
+h1,h2,h3{font-family:"Plus Jakarta Sans","Segoe UI",sans-serif;text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:30px}
+h2{font-size:20px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:16px}
+p{margin:0;max-width:68ch}
+section{display:flex;flex-direction:column;gap:14px}
+.mono,code{font-family:"JetBrains Mono",Consolas,monospace;font-size:.86em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:12px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px}
+.meta div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.meta dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.meta dd{margin:0;font-weight:600}
+.status{color:var(--warn)}
+ol,ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;max-width:70ch}
+.decision{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+.decision ol{gap:12px}
+.decision b{color:var(--accent)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.p-yes{background:var(--accent-bg);color:var(--accent)}
+.p-chg{background:var(--warn-bg);color:var(--warn)}
+.p-no{background:var(--no-bg);color:var(--no)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.cols > div{display:flex;flex-direction:column;gap:8px}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto}
+.note{font-size:14px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding-top:16px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Opsyra · Architecture Decision Record</span>
+  <h1>ADR-001: Multi-tenant platform built from SLMS360 and ToddlersApp</h1>
+  <dl class="meta">
+    <div><dt>Status</dt><dd class="status">Proposed</dd></div>
+    <div><dt>Date</dt><dd class="mono">2026-09-24</dd></div>
+    <div><dt>Deciders</dt><dd>Kashif, Haaris</dd></div>
+    <div><dt>Database</dt><dd>PostgreSQL</dd></div>
+  </dl>
+</header>
+
+<section>
+  <h2>Context</h2>
+  <p>Opsyra is a new SaaS for small businesses. It combines the admin modules of SLMS360 and ToddlersApp, and CRM will be added later. Neither product fits as-is:</p>
+  <ul>
+    <li><b>SLMS360</b> has the strongest HRMS, including the v2.5.0 work shipped this month (RBAC, approvals with an L2 gate, salary and attendance hubs, setup wizard, subscription enforcement, US payroll). It runs one deployment per client: app → client code → that client's endpoint. None of its tables carry a tenant key.</li>
+    <li><b>ToddlersApp</b> already runs as one deployment with a single endpoint that resolves the client per request, and it isolates clients inside that deployment.</li>
+    <li>Brainstormer sells in the US, UK, Oman and Pakistan, so client data should stay in its own country.</li>
+    <li>Small-business tenants are numerous and small. A database per tenant would cost more to operate than it's worth at this size.</li>
+    <li>The v2.5.0 security review removed six SLMS360 modules because any logged-in staff member could reach data they shouldn't. The new product has to rule out that class of bug by design.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Decision</h2>
+  <div class="decision">
+    <ol>
+      <li><b>New standalone codebase.</b> Opsyra is a new repository. SLMS360 and ToddlersApp are not modified. Code is copied from read-only reference clones and repurposed, and each module's origin is recorded with its source commit.</li>
+      <li><b>One deployment per country</b> (<code>us</code>, <code>uk</code>, <code>om</code>, <code>pk</code>) from one codebase. Country is configuration, never a fork.</li>
+      <li><b>One shared PostgreSQL database per country.</b> All clients in that country are tenants in the same database, isolated by <code>tenant_id</code>.</li>
+      <li><b>Two-layer isolation.</b> A global query scope in the app, plus Postgres row-level security keyed on <code>app.tenant_id</code>. A missed filter in code still can't return another tenant's rows.</li>
+      <li><b>Tenant resolution is ported from ToddlersApp.</b> The user experience stays the same: the app asks for a client code, and a small global directory maps that code to the right country endpoint.</li>
+      <li><b>Per-country platform tables</b> for tenants, subscriptions, plans and feature flags, and payroll tax tables. These replace SLMS360's subscription bridge and the planned cross-deployment Tax Table Service.</li>
+      <li><b>Escape hatch for large clients.</b> The resolver returns a database connection, so a large tenant can move to a dedicated database without code changes.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>Request flow</h2>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  A[Mobile / web app] -->|client code| G[Global directory<br/>code → country URL<br/>no personal data]
+  G --> US[US deployment]
+  G --> UK[UK deployment]
+  G --> OM[Oman deployment]
+  G --> PK[Pakistan deployment]
+  US --> M[Tenant middleware<br/>resolve tenant, set app.tenant_id]
+  M --> DB[(Postgres, US<br/>shared tables + tenant_id + RLS)]
+  M --> P[(Platform tables<br/>tenants, plans, subscriptions, tax tables)]
+</pre>
+  </div>
+  <p class="note">Only the US branch is expanded. The other three deployments have the same internals.</p>
+</section>
+
+<section>
+  <h2>Module scope</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Module</th><th>Source</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>HR staff, departments &amp; designations, teams</td><td>SLMS360</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>Onboarding and offboarding approvals (L2 gate)</td><td>SLMS360 v2.5.0</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>Salaries hub, attendance hub, HR dashboard, management insights</td><td>SLMS360 v2.5.0</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>RBAC (roles alongside direct permissions)</td><td>SLMS360 v2.5.0</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>Staff ID card, setup wizard, Excel import/export engine</td><td>SLMS360 v2.5.0</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>Subscription enforcement</td><td>SLMS360 v2.5.0</td><td><span class="pill p-chg">Port with changes</span> reads the platform tables</td></tr>
+      <tr><td>US federal payroll and tax tables</td><td>SLMS360</td><td><span class="pill p-chg">Port with changes</span> US deployment only</td></tr>
+      <tr><td>Accounts &amp; fees, billing, vouchers, double-entry ledger</td><td>ToddlersApp</td><td><span class="pill p-chg">Port with changes</span> generalize "fees" to invoicing</td></tr>
+      <tr><td>Tenant resolution layer</td><td>ToddlersApp</td><td><span class="pill p-yes">Port</span></td></tr>
+      <tr><td>Students, parents, classes, homework, timetable, houses, exams</td><td>Both</td><td><span class="pill p-no">Exclude</span> educational</td></tr>
+      <tr><td>Staff Performance, Staff Evaluation, Leads/CRM, Projects &amp; Tasks, Revenue Reporting, Job Portal</td><td>SLMS360</td><td><span class="pill p-no">Exclude</span> removed in v2.5.0; CRM will be built fresh</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Where both products have the same module, the inventory step compares them and recommends one. They are never merged silently.</p>
+</section>
+
+<section>
+  <h2>Isolation rules every module must follow</h2>
+  <ol>
+    <li>Every tenant table has <code>tenant_id</code>, including pivot, log, attachment and settings tables. Indexes lead with it, and unique constraints include it.</li>
+    <li>Scoping is automatic through a <code>BelongsToTenant</code> trait. Any opt-out is explicit, easy to search for, and code-reviewed.</li>
+    <li>RLS is enabled on every tenant table. Middleware and queued jobs set <code>app.tenant_id</code>.</li>
+    <li>Every submitted foreign ID is validated within the tenant.</li>
+    <li>Every action checks role and ownership, not just login. This is the issue class the v2.5.0 review found.</li>
+    <li>Cache keys, file storage paths, exports and queued jobs carry the tenant.</li>
+    <li>A cross-tenant test (log in as tenant A, attack tenant B's data on every route) runs in CI and blocks merges.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Alternatives considered</h2>
+  <div class="cols">
+    <div><h3>Database per tenant</h3><p>Strongest isolation, and the SLMS360 code would work unchanged. Rejected as the default because operating hundreds of small-business databases costs too much. Kept as the escape hatch for large clients.</p></div>
+    <div><h3>One global deployment</h3><p>Simplest to run, but it puts every country's client data in one place and makes each outage global. Rejected because of data residency.</p></div>
+    <div><h3>Shared database on MySQL</h3><p>Matches the current stack, but MySQL has no row-level security, so isolation would rest entirely on application code. Rejected in favor of Postgres.</p></div>
+    <div><h3>Evolve SLMS360 in place</h3><p>Avoids a new repository, but it puts an existing product and its clients at risk. Rejected: the originals stay untouched.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Consequences</h2>
+  <div class="cols">
+    <div><h3>Positive</h3><ul>
+      <li>Four deployments to run instead of one per client</li>
+      <li>Client data stays in its own country</li>
+      <li>Isolation is enforced by the database as well as the app</li>
+      <li>Tax tables and subscriptions live in one place per country</li>
+      <li>SLMS360 and ToddlersApp clients are unaffected</li>
+    </ul></div>
+    <div><h3>Costs</h3><ul>
+      <li>SLMS360 modules need a <code>tenant_id</code> retrofit</li>
+      <li>MySQL-specific SQL must be converted to Postgres</li>
+      <li>Bug fixes may need applying in three codebases for a while</li>
+      <li>The global directory is a shared dependency; keep it tiny and cached</li>
+    </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>Delivery plan</h2>
+  <ol>
+    <li>Create reference clones and a module inventory. <b>Review checkpoint.</b></li>
+    <li>Scaffold the app and build the tenancy core, global directory and cross-tenant test harness. <b>Review checkpoint.</b></li>
+    <li>Port modules one at a time, RBAC and HR core first, each passing the isolation tests before the next starts.</li>
+    <li>Add country configuration, feature flags and templates for the four deployments.</li>
+    <li>Design CRM fresh on top of the tenancy core.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Open questions</h2>
+  <ul>
+    <li>Which SLMS360 branch is the source of truth for v2.5.0: <code>brainstormertech</code> or <code>alis</code>?</li>
+    <li>ToddlersApp's backend stack and exact tenancy mechanism. The inventory step will confirm both.</li>
+    <li>Hosting region for the Oman and Pakistan deployments, and whether local regulators require in-country hosting.</li>
+    <li>Whether existing SLMS360 clients will be offered migration to Opsyra, or stay on SLMS360.</li>
+  </ul>
+</section>
+
+<footer>Brainstormer Technologies · Opsyra ADR-001 · Proposed 2026-09-24</footer>
+</div>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="/_runtime/mermaid-11.16.1.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+
+</body></html>

@@ -17,7 +17,13 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        // API-first app: tenant users authenticate via Sanctum tokens, not
+        // web sessions, so 'sanctum' — not Laravel's default 'web' — is what
+        // Auth::user()/$request->user() should resolve without an explicit
+        // guard. Matters for spatie/laravel-permission too: roles/permissions
+        // are stored with guard_name 'sanctum' (see RbacServiceProvider),
+        // and its guard auto-detection reads this default.
+        'guard' => env('AUTH_GUARD', 'sanctum'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -41,6 +47,15 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users',
+        ],
+
+        // Declared explicitly (Sanctum's own driver works without this
+        // entry) so spatie/laravel-permission's guard auto-detection finds
+        // exactly one guard for the users provider, not an ambiguous choice
+        // between this and 'web'.
+        'sanctum' => [
+            'driver' => 'sanctum',
             'provider' => 'users',
         ],
 

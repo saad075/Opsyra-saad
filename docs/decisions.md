@@ -2,6 +2,37 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Phase 3, module 1: RBAC
+
+Full detail in `docs/provenance.md`. Highlights:
+
+- Used spatie/laravel-permission's built-in **"teams" feature** for
+  multi-tenancy rather than hand-rolling role/permission tenant scoping —
+  `team_foreign_key` set to `tenant_id`. A custom `TenantPermissionsTeamResolver`
+  reads the team id from our existing `TenantContext` (not the package's own
+  static resolver), so tenant identity has exactly one source of truth across
+  the whole app, RBAC included.
+- `roles` / `model_has_roles` / `model_has_permissions` are tenant-scoped
+  (RLS + `BelongsToTenant` via a thin `Role` subclass). `permissions` /
+  `role_has_permissions` are left global — permissions are the app's fixed
+  capability list, not tenant data, same treatment as the Platform tables.
+- Replaced SLMS360's inline `Auth::user()->can(...)` checks with a `RolePolicy`
+  that checks permission **and** tenant ownership — the exact issue class
+  (permission-only checks, no ownership check) the task says the v2.5.0
+  SLMS360 review found. This is the pattern every future module's
+  authorization should follow.
+- `guard_name` is `sanctum` (this app's real auth guard), not SLMS360's `api`
+  (Passport) — required adding an explicit `sanctum` guard + making it the
+  default guard in `config/auth.php` so spatie's guard auto-detection and
+  `Auth::user()`/`$request->user()` all agree on which guard resolved a
+  request.
+- Learned while testing: `assertDatabaseHas`/raw DB assertions made *after* an
+  HTTP test request completes run with no tenant context (`ResolveTenantFromUser
+  ::terminate()` correctly clears it once the response is sent) — RLS then
+  shows zero rows, not the row you just created. Not a bug; any post-request
+  assertion against a tenant table needs to re-open tenant context itself
+  (`Tenant::runAs(...)`), same as any other out-of-request code would.
+
 ## 2026-09-25 — Phase 2: scaffold and tenancy core
 
 **Local dev: native Postgres 17 + Memurai, not Docker.** Docker Desktop isn't

@@ -25,8 +25,16 @@
 # IDE / OS
 .idea/
 .vscode/
+.fleet/
+.nova/
+.zed/
+.phpactor.json
 .DS_Store
 Thumbs.db
+/auth.json
+/storage/pail
+Homestead.json
+Homestead.yaml
 
 # Testing / coverage
 /.phpunit.cache

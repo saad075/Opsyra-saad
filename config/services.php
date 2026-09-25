@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Opsyra Central → this country deployment (signed internal API).
+    // The same secret is set for this country in Central's .env.
+    'central' => [
+        'secret' => env('OPSYRA_CENTRAL_SECRET'),
+    ],
+
 ];

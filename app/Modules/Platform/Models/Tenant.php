@@ -31,7 +31,20 @@ class Tenant extends Model
         'country',
         'status',
         'database_connection',
+        'trial_ends_at',
+        'plan_code',
+        'features',
+        'is_demo',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'trial_ends_at' => 'datetime',
+            'features' => 'array',
+            'is_demo' => 'boolean',
+        ];
+    }
 
     public function subscriptions()
     {

@@ -8,16 +8,19 @@ return [
     |--------------------------------------------------------------------------
     |
     | One Opsyra deployment per country (docs/decisions.md). Codes are ISO
-    | 3166 alpha-2; `url` is that deployment's app, used by the company-code
-    | login redirect and by sign-up provisioning.
+    | 3166 alpha-2. `url` is that deployment's app (company-code login
+    | redirect); `api_url` + `secret` are its signed internal API, used for
+    | sign-up provisioning — the secret must equal that deployment's
+    | OPSYRA_CENTRAL_SECRET. A country with no api_url/secret can't take
+    | sign-ups yet.
     |
     */
 
     'countries' => [
-        'us' => ['name' => 'United States', 'currency' => 'USD', 'url' => env('OPSYRA_US_URL', 'http://localhost:5173')],
-        'gb' => ['name' => 'United Kingdom', 'currency' => 'GBP', 'url' => env('OPSYRA_GB_URL')],
-        'om' => ['name' => 'Oman', 'currency' => 'OMR', 'url' => env('OPSYRA_OM_URL')],
-        'pk' => ['name' => 'Pakistan', 'currency' => 'PKR', 'url' => env('OPSYRA_PK_URL')],
+        'us' => ['name' => 'United States', 'currency' => 'USD', 'url' => env('OPSYRA_US_URL', 'http://localhost:5173'), 'api_url' => env('OPSYRA_US_API_URL', 'http://localhost:8000'), 'secret' => env('OPSYRA_US_SECRET')],
+        'gb' => ['name' => 'United Kingdom', 'currency' => 'GBP', 'url' => env('OPSYRA_GB_URL'), 'api_url' => env('OPSYRA_GB_API_URL'), 'secret' => env('OPSYRA_GB_SECRET')],
+        'om' => ['name' => 'Oman', 'currency' => 'OMR', 'url' => env('OPSYRA_OM_URL'), 'api_url' => env('OPSYRA_OM_API_URL'), 'secret' => env('OPSYRA_OM_SECRET')],
+        'pk' => ['name' => 'Pakistan', 'currency' => 'PKR', 'url' => env('OPSYRA_PK_URL'), 'api_url' => env('OPSYRA_PK_API_URL'), 'secret' => env('OPSYRA_PK_SECRET')],
     ],
 
     /*

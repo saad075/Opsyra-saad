@@ -20,8 +20,10 @@
                     <span class="font-display font-bold">Opsyra <span class="font-semibold text-muted">Central</span></span>
                 </a>
                 <nav class="flex gap-1 text-[15px] font-semibold">
-                    <a href="{{ route('admin.pricing') }}" @class(['rounded-lg px-3 py-1.5', 'bg-brand-100 text-brand-700' => request()->routeIs('admin.pricing'), 'text-ink/70 hover:text-ink' => ! request()->routeIs('admin.pricing')])>Pricing</a>
-                    <a href="{{ route('admin.plans') }}" @class(['rounded-lg px-3 py-1.5', 'bg-brand-100 text-brand-700' => request()->routeIs('admin.plans'), 'text-ink/70 hover:text-ink' => ! request()->routeIs('admin.plans')])>Plans</a>
+                    @foreach (['admin.home' => 'Dashboard', 'admin.companies' => 'Companies', 'admin.pricing' => 'Pricing', 'admin.plans' => 'Plans'] as $routeName => $label)
+                        @php($active = request()->routeIs($routeName) || request()->routeIs($routeName.'.*'))
+                        <a href="{{ route($routeName) }}" @class(['rounded-lg px-3 py-1.5', 'bg-brand-100 text-brand-700' => $active, 'text-ink/70 hover:text-ink' => ! $active])>{{ $label }}</a>
+                    @endforeach
                 </nav>
             </div>
             <form method="POST" action="{{ route('admin.logout') }}" class="flex items-center gap-3 text-sm">
@@ -35,6 +37,9 @@
     <main class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         @if (session('status'))
             <div class="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 font-semibold text-brand-700">{{ session('status') }}</div>
+        @endif
+        @if (session('warning'))
+            <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-900">{{ session('warning') }}</div>
         @endif
         @if ($errors->any())
             <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">

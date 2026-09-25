@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PricingController;
 use App\Http\Controllers\CompanyLoginController;
@@ -28,7 +30,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware(['auth', EnsureActiveAdmin::class])->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
-        Route::redirect('/', '/admin/pricing')->name('home');
+        Route::get('/', DashboardController::class)->name('home');
+        Route::get('companies', [CompanyController::class, 'index'])->name('companies');
+        Route::get('companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+        Route::post('companies/{company}/extend-trial', [CompanyController::class, 'extendTrial'])->name('companies.extend-trial');
+        Route::post('companies/{company}/plan', [CompanyController::class, 'changePlan'])->name('companies.plan');
+        Route::post('companies/{company}/status', [CompanyController::class, 'setStatus'])->name('companies.status');
+        Route::post('companies/{company}/retry', [CompanyController::class, 'retry'])->name('companies.retry');
         Route::get('pricing/{country?}', [PricingController::class, 'edit'])->name('pricing');
         Route::post('pricing/{country}', [PricingController::class, 'update'])->name('pricing.update');
         Route::post('pricing/{country}/publish', [PricingController::class, 'publish'])->name('pricing.publish');

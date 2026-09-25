@@ -62,7 +62,7 @@ class PricingTest extends TestCase
         $this->assertGuest();
 
         $active = $this->admin(['password' => 'secret-pass-123']);
-        $this->post('/admin/login', ['email' => $active->email, 'password' => 'secret-pass-123'])->assertRedirect('/admin/pricing');
+        $this->post('/admin/login', ['email' => $active->email, 'password' => 'secret-pass-123'])->assertRedirect('/admin/pricing'); // back to the page they first asked for
         $this->get('/admin/pricing/us')->assertOk()->assertSee('Save prices');
     }
 

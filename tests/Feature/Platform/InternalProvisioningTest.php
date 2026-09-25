@@ -3,6 +3,7 @@
 namespace Tests\Feature\Platform;
 
 use App\Models\User;
+use App\Modules\Auth\Models\TenantAccessToken;
 use App\Modules\Auth\Notifications\WelcomeAdminNotification;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Tenancy\Support\TenantContext;
@@ -39,12 +40,12 @@ class InternalProvisioningTest extends TestCase
     }
 
     /** Signs exactly as Opsyra Central does. */
-    private function signedPost(array $payload, ?string $secret = self::SECRET, ?int $timestamp = null)
+    private function signedPost(array $payload, ?string $secret = self::SECRET, ?int $timestamp = null, string $path = '/api/internal/tenants')
     {
         $body = json_encode($payload);
         $timestamp ??= time();
 
-        return $this->call('POST', '/api/internal/tenants', [], [], [], [
+        return $this->call('POST', $path, [], [], [], [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
             'HTTP_X_OPSYRA_TIMESTAMP' => (string) $timestamp,
@@ -104,5 +105,46 @@ class InternalProvisioningTest extends TestCase
         config(['services.central.secret' => null]);
 
         $this->signedPost($this->payload())->assertStatus(503);
+    }
+
+    public function test_central_can_suspend_a_company_which_signs_everyone_out(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+        $tenant = Tenant::where('client_code', 'acme')->firstOrFail();
+        $admin = app(TenantContext::class)->runAs($tenant->id, fn () => User::firstOrFail());
+        app(TenantContext::class)->runAs($tenant->id, fn () => $admin->createToken('web'));
+
+        $this->signedPost(['status' => 'suspended', 'plan_code' => 'plus', 'features' => ['people']], path: '/api/internal/tenants/acme/subscription')
+            ->assertOk();
+
+        $this->assertSame('suspended', $tenant->fresh()->status);
+        $this->assertSame(0, TenantAccessToken::where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_central_can_extend_a_trial(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+        $newEnd = now()->addDays(30)->startOfSecond();
+
+        $this->signedPost(['status' => 'trial', 'trial_ends_at' => $newEnd->toIso8601String()], path: '/api/internal/tenants/acme/subscription')->assertOk();
+
+        $this->assertTrue(Tenant::where('client_code', 'acme')->value('trial_ends_at') !== null);
+        $this->assertSame($newEnd->toDateString(), Tenant::where('client_code', 'acme')->first()->trial_ends_at->toDateString());
+    }
+
+    public function test_usage_reports_only_counts_per_company(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+
+        $response = $this->signedPost([], path: '/api/internal/usage')->assertOk();
+
+        $acme = collect($response->json('data'))->firstWhere('client_code', 'acme');
+        $this->assertSame(['client_code' => 'acme', 'active_employees' => 1], $acme);
+    }
+
+    public function test_subscription_updates_need_a_valid_signature_too(): void
+    {
+        $this->postJson('/api/internal/tenants/acme/subscription', ['status' => 'active'])->assertUnauthorized();
+        $this->postJson('/api/internal/usage', [])->assertUnauthorized();
     }
 }

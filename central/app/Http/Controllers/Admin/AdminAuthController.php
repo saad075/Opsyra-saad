@@ -41,7 +41,7 @@ class AdminAuthController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.pricing'));
+        return redirect()->intended(route('admin.home'));
     }
 
     public function logout(Request $request)

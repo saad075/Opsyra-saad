@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // "login" is the public company-code page; the only guarded area in
         // Central is the super-admin one, with its own sign-in.
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
-        $middleware->redirectUsersTo(fn () => route('admin.pricing'));
+        $middleware->redirectUsersTo(fn () => route('admin.home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

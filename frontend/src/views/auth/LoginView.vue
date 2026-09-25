@@ -9,7 +9,10 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const form = reactive({ client_code: rememberedClientCode(), email: '', password: '' })
+// Arriving from the website's "Log in" (…/login?client_code=acme) fills the
+// code in; otherwise the last code used on this device.
+const fromLink = typeof route.query.client_code === 'string' ? route.query.client_code : ''
+const form = reactive({ client_code: fromLink || rememberedClientCode(), email: '', password: '' })
 const error = ref('')
 const busy = ref(false)
 

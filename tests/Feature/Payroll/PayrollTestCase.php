@@ -40,7 +40,7 @@ abstract class PayrollTestCase extends TestCase
         $this->seedTwoTenants();
 
         foreach (['HRMS-SalaryManagement', 'HRMS-StaffAdjustments', 'HRMS-Approval-L1', 'HRMS-Approval-L2'] as $name) {
-            Permission::create(['name' => $name, 'guard_name' => 'sanctum']);
+            Permission::findOrCreate($name, 'sanctum');
         }
 
         $this->inTenantA(function () {

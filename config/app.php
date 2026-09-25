@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Deployment country
+    |--------------------------------------------------------------------------
+    |
+    | Opsyra runs one deployment per country (us, uk, om, pk — see
+    | docs/decisions.md). Every tenant on this deployment belongs to this
+    | country; tenant provisioning refuses any other.
+    |
+    */
+
+    'country' => env('APP_COUNTRY', 'us'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

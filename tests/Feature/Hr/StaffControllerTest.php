@@ -22,9 +22,9 @@ class StaffControllerTest extends TestCase
 
         $this->seedTwoTenants();
 
-        Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
-        Permission::create(['name' => 'HRMS-StaffPermissionUpdate', 'guard_name' => 'sanctum']);
-        Permission::create(['name' => 'HRMS-Approval-L2', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-StaffManagement', 'sanctum');
+        Permission::findOrCreate('HRMS-StaffPermissionUpdate', 'sanctum');
+        Permission::findOrCreate('HRMS-Approval-L2', 'sanctum');
 
         $this->branchA = $this->tenantContext()->runAs(
             $this->tenantA->id,
@@ -157,7 +157,7 @@ class StaffControllerTest extends TestCase
     {
         $this->givePermission($this->userA, 'HRMS-StaffManagement');
 
-        Permission::create(['name' => 'HRMS-ViewActivityLogs', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-ViewActivityLogs', 'sanctum');
 
         $response = $this->actingAs($this->userA, 'sanctum')->postJson('/api/staff/update', [
             'user_id' => $this->userA->id,

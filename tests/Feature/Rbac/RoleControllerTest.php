@@ -18,8 +18,8 @@ class RoleControllerTest extends TestCase
 
         $this->seedTwoTenants();
 
-        Permission::create(['name' => 'HRMS-RoleManagement', 'guard_name' => 'sanctum']);
-        Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-RoleManagement', 'sanctum');
+        Permission::findOrCreate('HRMS-StaffManagement', 'sanctum');
     }
 
     protected function givePermission(): void
@@ -42,7 +42,7 @@ class RoleControllerTest extends TestCase
         $this->givePermission();
 
         $create = $this->actingAs($this->userA, 'sanctum')->postJson('/api/roles/create', [
-            'name' => 'HR Manager',
+            'name' => 'Team Lead',
             'permissions' => ['HRMS-StaffManagement'],
         ]);
 
@@ -51,8 +51,11 @@ class RoleControllerTest extends TestCase
         $list = $this->actingAs($this->userA, 'sanctum')->getJson('/api/roles/list');
 
         $list->assertOk();
-        $list->assertJsonPath('data.0.name', 'HR Manager');
-        $list->assertJsonPath('data.0.permissions.0.name', 'HRMS-StaffManagement');
+
+        // Alongside the default roles every tenant now starts with.
+        $role = collect($list->json('data'))->firstWhere('name', 'Team Lead');
+        $this->assertNotNull($role);
+        $this->assertSame(['HRMS-StaffManagement'], collect($role['permissions'])->pluck('name')->all());
     }
 
     public function test_it_rejects_a_duplicate_role_name_within_the_same_tenant(): void
@@ -61,11 +64,11 @@ class RoleControllerTest extends TestCase
 
         $this->tenantContext()->runAs(
             $this->tenantA->id,
-            fn () => Role::create(['name' => 'HR Manager', 'guard_name' => 'sanctum'])
+            fn () => Role::create(['name' => 'Team Lead', 'guard_name' => 'sanctum'])
         );
 
         $response = $this->actingAs($this->userA, 'sanctum')->postJson('/api/roles/create', [
-            'name' => 'HR Manager',
+            'name' => 'Team Lead',
         ]);
 
         $response->assertUnprocessable();
@@ -95,7 +98,7 @@ class RoleControllerTest extends TestCase
         $this->givePermission();
 
         $role = $this->tenantContext()->runAs($this->tenantA->id, function () {
-            $role = Role::create(['name' => 'HR Manager', 'guard_name' => 'sanctum']);
+            $role = Role::create(['name' => 'Team Lead', 'guard_name' => 'sanctum']);
             $this->userA->assignRole($role);
 
             return $role;

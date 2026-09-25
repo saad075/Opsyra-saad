@@ -2,6 +2,32 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Company provisioning, permission catalogue, default roles
+
+Needed before the first real company: nothing created permissions outside
+the tests, and nothing gave a new company's first admin access to the
+Setup wizard.
+
+- **One permission catalogue** (`PermissionCatalogue`), with SLMS360's names
+  and a plain description each, installed by migration and
+  `permissions:sync`. A test scans `app/` and fails if any checked
+  permission is missing from it.
+- **Five default roles per tenant**: Administrator (everything), HR
+  Manager, Payroll Officer, Approver (L1) and Senior approver (L2).
+  Tenants can edit them.
+- **`TenantProvisioner`** creates the tenant (whose `created` event seeds
+  every module's defaults), the first Administrator, the company-name
+  setting and the directory entry, in one transaction.
+- **A deployment only hosts its own country's companies**
+  (`APP_COUNTRY` → `config('app.country')`), matching the per-country
+  deployment design.
+- **Operator command for now** (`tenants:create`). A super-admin panel or
+  self sign-up would call the same service. The temporary password is
+  printed once and never stored in plain text.
+- Test impact: permissions now exist from migration onwards, so tests use
+  `Permission::findOrCreate`, and test roles no longer use default role
+  names.
+
 ## 2026-09-25 — Phase 3, module 6: Setup wizard (new `Setup` module)
 
 Moved up by the user, so that a company can be walked through configuring

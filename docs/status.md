@@ -48,7 +48,15 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   (name, address, timezone, currency); branch management (was a gap). See
   `docs/research/setup-wizard.md`. **Rule: any new module that adds
   per-company configuration must register setup steps for it.**
-- **139/139 tests passing**, all against real Postgres 17 + Memurai (not
+- **Company provisioning** (`app/Modules/Platform/Services/TenantProvisioner`,
+  operator command `php artisan tenants:create`): creates the tenant (every
+  module seeds its defaults), a first Administrator holding every
+  permission, and the directory entry; refuses a country other than this
+  deployment's `APP_COUNTRY`. **Permission catalogue**
+  (`Rbac/Support/PermissionCatalogue`) installed by migration and by
+  `permissions:sync`, plus five **default roles** per tenant. A test fails
+  if code checks a permission that isn't in the catalogue.
+- **145/145 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
@@ -85,7 +93,7 @@ nothing to launch manually.
 
 ```
 cd "C:\Personal Doc\Business\BrainStormers\Software\Opsyra"
-php artisan test            # should show 139 passed
+php artisan test            # should show 145 passed
 php artisan serve           # http://localhost:8000
 ```
 
@@ -114,14 +122,16 @@ which is expected.
   midnight isn't UTC midnight. The company timezone is now stored
   (`TenantSetting::get('timezone')`, set in the Setup wizard) and branches
   have their own; the jobs don't use them yet.
-- **No login endpoint yet**, and nothing blocks a non-active user
-  (`pending_approval`, `offboarded`) from using an existing API token other
-  than offboarding revoking tokens. Needs a status check once auth is built.
-- **No permission seeder** — permissions (`HRMS-StaffManagement`,
-  `HRMS-Approval-L2`, `HRMS-SalaryManagement`, `HRMS-CompanySettings`, …)
-  are only created in tests so far. Also: nothing gives a new tenant's first
-  admin `HRMS-CompanySettings`, so nobody could open the Setup wizard. Both
-  are needed before the first real company (tenant provisioning).
+- **No login endpoint yet**, so the first administrator can't actually log
+  in. Needs login (refusing non-active users: `pending_approval`,
+  `offboarded`, which today are only stopped by offboarding revoking tokens),
+  a password change on first login, and password reset;
+  provisioning currently prints a temporary password once. The dev database
+  has a **Demo Company** (client code `demo`, admin `admin@demo.test`),
+  created 2026-09-25; its temporary password wasn't kept, so reset it once
+  login exists.
+- No super-admin panel or self sign-up yet: companies are created by an
+  operator with `tenants:create`.
 - `_reference/` now also holds design-reference clones (Frappe HRMS,
   Horilla, Odoo, Krayin, OroCRM) — ideas only, no code copying; see
   `docs/decisions.md` for the licence policy.

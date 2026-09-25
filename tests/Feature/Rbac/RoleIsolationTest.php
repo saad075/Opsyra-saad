@@ -22,7 +22,7 @@ class RoleIsolationTest extends TestCase
     {
         $this->assertModelIsTenantIsolated(
             Role::class,
-            fn () => Role::create(['name' => 'HR Manager', 'guard_name' => 'sanctum']),
+            fn () => Role::create(['name' => 'Team Lead', 'guard_name' => 'sanctum']),
         );
     }
 

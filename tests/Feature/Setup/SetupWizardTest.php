@@ -25,7 +25,7 @@ class SetupWizardTest extends TestCase
         $this->seedTwoTenants();
 
         foreach (['HRMS-CompanySettings', 'HRMS-StaffManagement', 'HRMS-SalaryManagement', 'HRMS-Approval-L2'] as $name) {
-            Permission::create(['name' => $name, 'guard_name' => 'sanctum']);
+            Permission::findOrCreate($name, 'sanctum');
         }
 
         $this->inTenantA(fn () => $this->userA->givePermissionTo(['HRMS-CompanySettings', 'HRMS-StaffManagement', 'HRMS-SalaryManagement']));
@@ -57,7 +57,9 @@ class SetupWizardTest extends TestCase
 
         $this->assertSame('company_details', $status['next_step']);
         $this->assertFalse($status['is_complete']);
-        $this->assertSame(0, $status['completed_count']);
+
+        // Only Roles is already done: every tenant starts with default roles.
+        $this->assertSame(['roles'], collect($status['steps'])->where('status', 'done')->pluck('key')->all());
     }
 
     public function test_steps_complete_from_the_data_itself(): void

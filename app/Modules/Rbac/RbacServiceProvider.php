@@ -2,8 +2,11 @@
 
 namespace App\Modules\Rbac;
 
+use App\Modules\Platform\Models\Tenant;
+use App\Modules\Rbac\Console\SyncPermissionsCommand;
 use App\Modules\Rbac\Models\Role;
 use App\Modules\Rbac\Policies\RolePolicy;
+use App\Modules\Rbac\Support\DefaultRoles;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,5 +20,13 @@ class RbacServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Role::class, RolePolicy::class);
+
+        // Every new tenant starts with the default roles (Administrator, HR
+        // Manager, Payroll Officer, Approver, Senior approver).
+        Tenant::created(fn (Tenant $tenant) => DefaultRoles::seedFor($tenant));
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([SyncPermissionsCommand::class]);
+        }
     }
 }

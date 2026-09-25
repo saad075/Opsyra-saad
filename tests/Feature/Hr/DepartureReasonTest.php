@@ -19,7 +19,7 @@ class DepartureReasonTest extends TestCase
 
         $this->seedTwoTenants();
 
-        Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-StaffManagement', 'sanctum');
         $this->tenantContext()->runAs($this->tenantA->id, fn () => $this->userA->givePermissionTo('HRMS-StaffManagement'));
     }
 

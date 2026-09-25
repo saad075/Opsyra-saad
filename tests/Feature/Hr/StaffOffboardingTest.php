@@ -26,8 +26,8 @@ class StaffOffboardingTest extends TestCase
 
         $this->seedTwoTenants();
 
-        Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
-        Permission::create(['name' => 'HRMS-Approval-L2', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-StaffManagement', 'sanctum');
+        Permission::findOrCreate('HRMS-Approval-L2', 'sanctum');
 
         $this->inTenantA(function () {
             $this->userA->givePermissionTo('HRMS-StaffManagement');

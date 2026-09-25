@@ -18,7 +18,7 @@ class DepartmentControllerTest extends TestCase
 
         $this->seedTwoTenants();
 
-        Permission::create(['name' => 'HRMS-StaffManagement', 'guard_name' => 'sanctum']);
+        Permission::findOrCreate('HRMS-StaffManagement', 'sanctum');
     }
 
     protected function givePermission(): void

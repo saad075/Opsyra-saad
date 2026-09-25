@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Hr\HrServiceProvider;
 use App\Modules\Rbac\RbacServiceProvider;
 use App\Modules\Tenancy\TenancyServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -9,5 +10,6 @@ return [
     AppServiceProvider::class,
     TenancyServiceProvider::class,
     RbacServiceProvider::class,
+    HrServiceProvider::class,
     ModulesServiceProvider::class,
 ];

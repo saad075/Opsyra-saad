@@ -2,6 +2,35 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-25 — Phase 3, module 2: HR core (staff, departments, teams)
+
+Full detail in `docs/provenance.md`. Highlights:
+
+- **Dropped SLMS360's `role` string column** (Client/Staff/Parent/Super
+  Admin) entirely — it existed to mark "this row is the tenant owner," which
+  Opsyra's real `tenants` platform table already makes unnecessary. Every row
+  in a tenant's `users` table is now unambiguously that tenant's staff.
+- **Deliberately excluded onboarding/offboarding approval workflow** (the L2
+  gate) from this module even though it lived in the same 1098-line
+  `StaffController` in SLMS360 — `create()` here always activates a staff
+  record directly, no approval gate; that's the next module's job, layered on
+  top rather than half-built here.
+- Consolidated ~15 separate SLMS360 `alter_users_*` migrations (accumulated
+  2024–2026) into one migration scoped to this module's actual needs.
+  `cnic` generalized to `national_id` (four-country product, not
+  Pakistan-only).
+- Closed real IDOR gaps the Phase 1 inventory flagged: `activeDirectReports`,
+  `updateAvatar`, `clearDeviceId` had **zero tenant scoping** in SLMS360
+  (harmless there — single tenant per deployment). Fixed via `BelongsToTenant`
+  + RLS (structural) plus an explicit `manage-staff-member` Gate ability
+  (permission + ownership check, matching RolePolicy's pattern) for defense
+  in depth.
+- Added permission gates to every mutating staff/department/designation
+  action — SLMS360 had none for plain CRUD (only the L2/permission-update
+  sub-actions were gated, and inconsistently: `create()` never checked
+  `HRMS-StaffPermissionUpdate`, only `update()` did). Read/list actions stay
+  ungated, matching SLMS360's actual (reasonable) behavior.
+
 ## 2026-09-25 — Phase 3, module 1: RBAC
 
 Full detail in `docs/provenance.md`. Highlights:

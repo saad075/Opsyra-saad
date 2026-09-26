@@ -2,6 +2,46 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-26 — Attendance module, stage A (new `Attendance` module)
+
+User decisions (see `docs/research/attendance.md`):
+
+- **Attendance now, Leave next.** HR marks leave by hand (paid or unpaid,
+  also ahead of time) until the Leave module takes it over.
+- **Simple, per-company pay rules.** A day records facts — status (present,
+  half day, absent, on leave, remote, day off, holiday) plus late / left
+  early / missed check-out and minutes. The company's attendance policy
+  judges short days (half-day / absent thresholds) and, at pay-run time,
+  what they cost. Replaces SLMS360's 14 status codes, which froze pay
+  decisions (LT vs LTD…) into the record at check-in.
+- **Clocking is through the staff app** (like SLMS360's), so the backend
+  exposes an app API modelled on SLMS360's: `attendance/today`, `clock`,
+  `month`, `my-schedule`, `corrections/*`. Location is recorded and checked
+  against the branch; a far-away clock-in is **flagged for review, never
+  refused** (phone GPS indoors is often 50–200 m out).
+- **Fixed weekly schedules** (with night shifts), assigned with dates; the
+  company default applies to anyone not assigned. A week-by-week rota
+  (ToddlersApp) comes later.
+- **Visit-based staff** (home care — Kindstead): no fixed workplace; each
+  visit to a client's home is checked in/out with GPS matched to the
+  address, planned by a coordinator in Opsyra, paid **by the hour of visit
+  time**. Stage B; the calendar already treats `attendance_mode = visits`.
+
+Also decided while building:
+
+- **The database session runs in UTC** (`config/database.php`). The
+  attendance tables are the first to use `timestamptz`; the dev server's
+  Postgres defaulted to America/Chicago, which silently shifted every
+  clock time by 5–6 hours. Any server must behave the same.
+- **Days are settled hourly** (`attendance:close-out`), because "the day is
+  over" depends on each branch's timezone and on night shifts. Each day is
+  settled once (`closed_at`); later edits re-judge it. The close-out never
+  invents absences before a person joined or before the company started
+  keeping attendance (`attendance_started_on`).
+- New permissions: `HRMS-AttendanceManagement` (HR Manager and
+  Administrator by default) and `HRMS-VisitPlanning` (Administrator; a
+  company adds it to a coordinator role).
+
 ## 2026-09-25 — Pricing structure (Central)
 
 User direction: keep "plans coming soon" on the site for now, but put the

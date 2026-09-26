@@ -21,6 +21,7 @@ final class SetupStep
         'company' => 'Company',
         'people' => 'People and access',
         'hr' => 'HR processes',
+        'attendance' => 'Attendance',
         'payroll' => 'Payroll',
     ];
 

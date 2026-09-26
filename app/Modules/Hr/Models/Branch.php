@@ -24,12 +24,18 @@ class Branch extends Model
         'city',
         'phone',
         'timezone',
+        'latitude',
+        'longitude',
+        'geofence_radius_m',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'geofence_radius_m' => 'integer',
         ];
     }
 

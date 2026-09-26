@@ -3,6 +3,15 @@
 namespace App\Modules\Platform\Demo;
 
 use App\Models\User;
+use App\Modules\Attendance\Models\AttendanceCorrection;
+use App\Modules\Attendance\Models\AttendanceDay;
+use App\Modules\Attendance\Models\AttendancePunch;
+use App\Modules\Attendance\Models\Holiday;
+use App\Modules\Attendance\Services\AttendanceEditor;
+use App\Modules\Attendance\Services\DayCloser;
+use App\Modules\Attendance\Services\DayEvaluator;
+use App\Modules\Attendance\Services\WorkCalendar;
+use App\Modules\Attendance\Support\Geo;
 use App\Modules\Auth\Models\LoginLog;
 use App\Modules\Directory\Models\ClientDirectoryEntry;
 use App\Modules\Hr\Models\Branch;
@@ -30,6 +39,7 @@ use App\Modules\Setup\Models\SetupStepState;
 use App\Modules\Setup\Models\TenantSetting;
 use App\Modules\Tenancy\Support\TenantContext;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -72,6 +82,10 @@ class DemoCompanyBuilder
         private StaffChecklists $checklists,
         private PayslipGenerator $payslips,
         private PayslipApprovals $approvals,
+        private AttendanceEditor $attendanceEditor,
+        private DayCloser $dayCloser,
+        private DayEvaluator $dayEvaluator,
+        private WorkCalendar $workCalendar,
     ) {}
 
     /**
@@ -94,7 +108,7 @@ class DemoCompanyBuilder
         $this->tenant->update([
             'is_demo' => true,
             'plan_code' => 'premium',
-            'features' => ['people', 'hiring_approvals', 'checklists', 'payroll', 'pay_approvals', 'login_history'],
+            'features' => ['people', 'hiring_approvals', 'checklists', 'payroll', 'pay_approvals', 'attendance', 'login_history'],
         ]);
 
         app(TenantContext::class)->runAs($this->tenant->id, function () use ($admin) {
@@ -115,6 +129,7 @@ class DemoCompanyBuilder
                 $this->pay();
                 $this->hiringAndLeaving();
                 $this->payroll();
+                $this->attendance();
                 $this->activity();
                 $this->finishSetup($admin);
             });
@@ -456,6 +471,130 @@ class DemoCompanyBuilder
         }
     }
 
+    /**
+     * Three weeks of attendance: mostly on time, some late arrivals and early
+     * leavers, a missed check-out, a few clock-ins far from the office (to
+     * review), paid leave and an open correction request. Punches are written
+     * directly (the live clock's locking and look-ups made the nightly
+     * rebuild ten times slower), then every day is judged by the real
+     * DayEvaluator and DayCloser, so the same rules apply as in real use.
+     * Varies by person and date, but the same on every rebuild.
+     */
+    private function attendance(): void
+    {
+        TenantSetting::set('attendance_started_on', $this->today->subDays(21)->toDateString());
+
+        foreach ([
+            'New York HQ' => [40.7484, -73.9857],
+            'Chicago' => [41.8787, -87.6360],
+            'Austin' => [30.2653, -97.7470],
+        ] as $name => [$lat, $lng]) {
+            $this->branches[$name]->update(['latitude' => $lat, 'longitude' => $lng, 'geofence_radius_m' => 200]);
+        }
+
+        $holidays = $this->usHolidays((int) $this->today->format('Y')) + $this->usHolidays((int) $this->today->format('Y') + 1);
+
+        foreach ($holidays as $date => $name) {
+            Holiday::create(['date' => $date, 'name' => $name]);
+        }
+
+        $hr = $this->people['hr'];
+        $onLeave = [$this->today->subDays(9)->toDateString(), $this->today->subDays(8)->toDateString()];
+
+        foreach ($this->people as $key => $person) {
+            if ($person->status !== 'active' || $person->is_remote) {
+                continue;
+            }
+
+            $branch = $this->branches[$this->branchOf($person)];
+
+            for ($date = $this->today->subDays(21); $date->lt($this->today); $date = $date->addDay()) {
+                $day = $date->toDateString();
+
+                if ($date->isWeekend() || isset($holidays[$day]) || ($person->joined_at && $person->joined_at->toDateString() > $day)) {
+                    continue;
+                }
+
+                if ($key === 'sales3' && in_array($day, $onLeave, true)) {
+                    $this->attendanceEditor->setStatus($person, $day, 'on_leave', true, 'Annual leave', $hr);
+
+                    continue;
+                }
+
+                $r = crc32($key.$day) % 100;
+
+                if ($r < 3) {
+                    continue; // absent
+                }
+
+                $in = $r < 15 ? 9 * 60 + 12 + $r : 8 * 60 + 40 + $r % 18;           // late, or on time
+                $out = $r >= 15 && $r < 20 ? 15 * 60 + 30 : 17 * 60 + 2 + $r % 35;   // left early, or a full day
+
+                // 3–4: forgot to clock out; 96+: clocked in away from the office.
+                $this->demoDay($person, $branch, $day, $in, $r < 5 ? null : $out, far: $r >= 96);
+            }
+
+            $this->dayCloser->closeFor($person);
+        }
+
+        AttendanceCorrection::create([
+            'user_id' => $this->people['eng4']->id,
+            'date' => $this->today->subWeekdays(2)->toDateString(),
+            'requested_in' => '09:00',
+            'requested_out' => '17:30',
+            'reason' => 'My phone ran out of battery, so I couldn’t clock out.',
+        ]);
+    }
+
+    /** One clocked day: in (and out) at minutes past local midnight, judged by the real rules. */
+    private function demoDay(User $person, Branch $branch, string $day, int $in, ?int $out, bool $far): void
+    {
+        $midnight = CarbonImmutable::parse($day, $branch->timezone);
+        $record = AttendanceDay::create([
+            'user_id' => $person->id, 'date' => $day, 'status' => 'open', 'source' => 'app', 'branch_id' => $branch->id, 'closed_at' => now(),
+        ]);
+
+        $punches = [];
+
+        foreach (array_filter(['in' => $in, 'out' => $out], fn ($m) => $m !== null) as $type => $minutes) {
+            $lat = $branch->latitude + ($far && $type === 'in' ? 0.02 : 0.0003);
+            $distance = Geo::distanceMetres($lat, $branch->longitude, $branch->latitude, $branch->longitude);
+            $punches[] = [
+                'tenant_id' => $this->tenant->id, 'user_id' => $person->id, 'attendance_day_id' => $record->id, 'type' => $type,
+                'punched_at' => $midnight->addMinutes($minutes)->utc(), 'branch_id' => $branch->id, 'latitude' => $lat, 'longitude' => $branch->longitude,
+                'accuracy_m' => 15, 'distance_m' => $distance, 'within_range' => $distance <= $branch->geofence_radius_m, 'source' => 'app',
+                'created_at' => now(), 'updated_at' => now(),
+            ];
+        }
+
+        AttendancePunch::insert($punches);
+
+        $this->dayEvaluator->evaluate($record, $this->workCalendar->expectationFor($person, $day), $person, isOver: true);
+    }
+
+    private function branchOf(User $person): string
+    {
+        $branchId = UserBranch::where('user_id', $person->id)->orderByDesc('status')->value('branch_id');
+
+        return collect($this->branches)->search(fn (Branch $b) => $b->id === $branchId) ?: 'New York HQ';
+    }
+
+    /** @return array<string, string> the US federal holidays a small company typically observes */
+    private function usHolidays(int $year): array
+    {
+        $month = fn (int $m) => CarbonImmutable::create($year, $m, 1);
+
+        return [
+            "{$year}-01-01" => 'New Year’s Day',
+            $month(1)->nthOfMonth(3, CarbonInterface::MONDAY)->toDateString() => 'Martin Luther King Jr. Day',
+            $month(5)->lastOfMonth(CarbonInterface::MONDAY)->toDateString() => 'Memorial Day',
+            "{$year}-07-04" => 'Independence Day',
+            $month(9)->firstOfMonth(CarbonInterface::MONDAY)->toDateString() => 'Labor Day',
+            $month(11)->nthOfMonth(4, CarbonInterface::THURSDAY)->toDateString() => 'Thanksgiving',
+            "{$year}-12-25" => 'Christmas Day',
+        ];
+    }
+
     private function activity(): void
     {
         foreach ([['admin', 0], ['hr', 1], ['payroll', 1], ['cfo', 2], ['hr', 3], ['admin', 4]] as [$key, $daysAgo]) {
@@ -474,7 +613,7 @@ class DemoCompanyBuilder
      */
     private function finishSetup(User $admin): void
     {
-        foreach (['departure_reasons', 'checklist_templates', 'pay_components'] as $key) {
+        foreach (['departure_reasons', 'checklist_templates', 'pay_components', 'work_schedules', 'attendance_rules'] as $key) {
             SetupStepState::create(['step_key' => $key, 'state' => 'reviewed', 'updated_by' => $admin->id]);
         }
 

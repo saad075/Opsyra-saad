@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Attendance\AttendanceServiceProvider;
 use App\Modules\Auth\AuthServiceProvider;
 use App\Modules\Hr\HrServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
@@ -18,6 +19,7 @@ return [
     AuthServiceProvider::class,
     HrServiceProvider::class,
     PayrollServiceProvider::class,
+    AttendanceServiceProvider::class,
     SetupServiceProvider::class,
     ModulesServiceProvider::class,
 ];

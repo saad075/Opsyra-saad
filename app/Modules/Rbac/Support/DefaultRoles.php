@@ -20,7 +20,7 @@ final class DefaultRoles
     {
         return [
             self::ADMINISTRATOR => array_keys(PermissionCatalogue::PERMISSIONS),
-            'HR Manager' => ['HRMS-StaffManagement', 'HRMS-StaffPermissionUpdate'],
+            'HR Manager' => ['HRMS-StaffManagement', 'HRMS-StaffPermissionUpdate', 'HRMS-AttendanceManagement'],
             'Payroll Officer' => ['HRMS-SalaryManagement', 'HRMS-StaffAdjustments'],
             'Approver' => ['HRMS-Approval-L1'],
             'Senior approver' => ['HRMS-Approval-L2'],

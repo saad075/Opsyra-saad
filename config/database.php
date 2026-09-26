@@ -96,6 +96,10 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
+            // The app runs in UTC; so must the database session, or a
+            // timestamptz written without an offset is read as the server's
+            // local time (a Windows dev box defaulted to America/Chicago).
+            'timezone' => 'UTC',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 

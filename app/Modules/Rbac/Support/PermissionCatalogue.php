@@ -28,6 +28,8 @@ final class PermissionCatalogue
         'HRMS-Approval-L2' => ['Approvals', 'Final approval of new hires, leavers and salaries'],
         'HRMS-SalaryManagement' => ['Payroll', 'Set salaries and bank details, run payroll'],
         'HRMS-StaffAdjustments' => ['Payroll', 'Add one-off salary adjustments'],
+        'HRMS-AttendanceManagement' => ['Attendance', 'Set work schedules and holidays, and review and correct attendance'],
+        'HRMS-VisitPlanning' => ['Attendance', 'Plan client visits and review visit check-ins'],
     ];
 
     public static function sync(): void

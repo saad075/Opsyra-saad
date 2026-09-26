@@ -37,6 +37,7 @@ class User extends Authenticatable
         'national_id',
         'joined_at',
         'is_remote',
+        'attendance_mode',
         'blood_group',
         'avatar',
         'device_id',

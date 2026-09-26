@@ -108,7 +108,7 @@ class RoleControllerTest extends TestCase
             'id' => $role->id,
         ]);
 
-        $response->assertOk();
+        $response->assertStatus(409);
         $response->assertJsonPath('status', false);
 
         // The request's tenant context is cleared in terminate() once the

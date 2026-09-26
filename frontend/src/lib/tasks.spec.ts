@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ChecklistTask } from '@/api/types'
-import { assigneeLabel, daysUntil, dueLabel, isOverdue } from './tasks'
+import { assigneeLabel, daysUntil, dueLabel, isOverdue, offsetLabel } from './tasks'
 
 const task = (over: Partial<ChecklistTask> = {}): ChecklistTask => ({
   id: 1,
@@ -55,5 +55,13 @@ describe('assigneeLabel', () => {
     expect(assigneeLabel(task({ assignee_user: { id: 3, name: 'Sara Khan' } }))).toBe('Sara Khan')
     expect(assigneeLabel(task({ assignee_role: { id: 2, name: 'IT' } }))).toBe('Anyone in IT')
     expect(assigneeLabel(task())).toBe('Unassigned (HR)')
+  })
+})
+
+describe('offsetLabel', () => {
+  it('says when a template task falls due', () => {
+    expect(offsetLabel(0, 'onboarding')).toBe('On the start date')
+    expect(offsetLabel(-3, 'onboarding')).toBe('3 days before the start date')
+    expect(offsetLabel(1, 'offboarding')).toBe('1 day after the last day')
   })
 })

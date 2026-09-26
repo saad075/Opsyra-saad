@@ -287,3 +287,74 @@ export interface Payslip {
   l1_approver?: Named | null
   approver?: Named | null
 }
+
+export interface Department {
+  id: number
+  name: string
+  description: string | null
+  designations_count: number
+}
+
+export interface Designation {
+  id: number
+  name: string
+  department_id: number | null
+  department: Named | null
+}
+
+export interface DepartureReason {
+  id: number
+  name: string
+  sequence: number
+  is_active: boolean
+  is_system: boolean
+  requires_note: boolean
+}
+
+export type TemplateAssignee = 'manager' | 'employee' | 'role' | 'user'
+
+export interface ChecklistTemplateTask {
+  id?: number
+  title: string
+  description: string | null
+  assignee_type: TemplateAssignee
+  assignee_role_id: number | null
+  assignee_user_id: number | null
+  due_offset_days: number
+  is_required: boolean
+  assignee_role?: Named | null
+  assignee_user?: Named | null
+}
+
+export interface ChecklistTemplate {
+  id: number
+  type: 'onboarding' | 'offboarding'
+  name: string
+  description: string | null
+  is_default: boolean
+  is_active: boolean
+  tasks: ChecklistTemplateTask[]
+}
+
+export interface PermissionInfo {
+  name: string
+  group: string
+  description: string
+}
+
+export interface RoleWithPermissions {
+  id: number
+  name: string
+  permissions: Named[]
+  staff_count: number
+}
+
+export interface ApproverRow {
+  id: number
+  name: string
+  designation: string | null
+  roles: string[]
+  direct_level: 0 | 1 | 2
+  role_level: 0 | 1 | 2
+  level: 0 | 1 | 2
+}

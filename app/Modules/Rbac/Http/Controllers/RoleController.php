@@ -5,6 +5,7 @@ namespace App\Modules\Rbac\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Rbac\Models\Role;
+use App\Modules\Rbac\Support\PermissionCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -47,6 +48,14 @@ class RoleController extends Controller
             'message' => 'Roles retrieved successfully',
             'data' => $roles,
         ]);
+    }
+
+    /** Every permission a role can hold, grouped and described in plain words. */
+    public function permissions()
+    {
+        $this->authorize('viewAny', Role::class);
+
+        return response()->json(['status' => true, 'message' => 'Permissions', 'data' => PermissionCatalogue::describe()]);
     }
 
     public function store(Request $request)
@@ -128,7 +137,7 @@ class RoleController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'This role is still assigned to staff. Reassign them before deleting it.',
-            ]);
+            ], 409);
         }
 
         $role->delete();

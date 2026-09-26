@@ -43,3 +43,12 @@ export function assigneeLabel(task: ChecklistTask): string {
   if (task.assignee_role) return `Anyone in ${task.assignee_role.name}`
   return 'Unassigned (HR)'
 }
+
+/** A template task's due date relative to the start date (joining) or last day (leaving). */
+export function offsetLabel(days: number | null, type: 'onboarding' | 'offboarding'): string {
+  const anchor = type === 'onboarding' ? 'start date' : 'last day'
+  const n = days ?? 0
+  if (n === 0) return `On the ${anchor}`
+  const count = `${Math.abs(n)} ${Math.abs(n) === 1 ? 'day' : 'days'}`
+  return `${count} ${n < 0 ? 'before' : 'after'} the ${anchor}`
+}

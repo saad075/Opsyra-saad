@@ -79,8 +79,8 @@ class DepartmentController extends Controller
         if ($department->designations()->count() > 0) {
             return response()->json([
                 'status' => false,
-                'message' => 'This department still has designations under it. Reassign or delete them first.',
-            ]);
+                'message' => 'This department still has job titles in it. Move or delete them first.',
+            ], 409);
         }
 
         $department->delete();

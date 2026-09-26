@@ -5,6 +5,9 @@ import {
   CheckmarkDoneOutline,
   ChatbubblesOutline,
   DocumentTextOutline,
+  ExitOutline,
+  GitNetworkOutline,
+  KeyOutline,
   PlayCircleOutline,
   ReceiptOutline,
   ListOutline,
@@ -15,6 +18,7 @@ import {
   PersonOutline,
   RocketOutline,
   SettingsOutline,
+  ShieldCheckmarkOutline,
   StatsChartOutline,
   SunnyOutline,
   WalletOutline,
@@ -82,6 +86,11 @@ const menu = computed<MenuOption[]>(() => {
       children: [
         { key: 'setup', label: link('setup', 'Setup'), icon: icon(RocketOutline), permission: 'HRMS-CompanySettings' },
         { key: 'company-settings', label: link('company-settings', 'Company'), icon: icon(BusinessOutline), permission: 'HRMS-CompanySettings' },
+        { key: 'departments', label: link('departments', 'Departments'), icon: icon(GitNetworkOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'roles', label: link('roles', 'Roles'), icon: icon(KeyOutline), permission: 'HRMS-RoleManagement' },
+        { key: 'approvers', label: link('approvers', 'Approvers'), icon: icon(ShieldCheckmarkOutline), permission: 'HRMS-StaffPermissionUpdate' },
+        { key: 'leaving-reasons', label: link('leaving-reasons', 'Leaving reasons'), icon: icon(ExitOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'checklist-templates', label: link('checklist-templates', 'Checklist templates'), icon: icon(ListOutline), permission: 'HRMS-StaffManagement' },
       ],
     },
   ]
@@ -110,7 +119,7 @@ const openGroups = computed(() => {
   const name = String(route.name)
   if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
   if (name.startsWith('payroll-') || (name === 'payslip' && auth.canAny(PAYROLL_VIEWERS))) return ['payroll']
-  if (name === 'setup' || name === 'company-settings') return ['settings']
+  if (['setup', 'company-settings', 'departments', 'roles', 'approvers', 'leaving-reasons', 'checklist-templates'].includes(name)) return ['settings']
   return []
 })
 

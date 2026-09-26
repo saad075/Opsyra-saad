@@ -325,7 +325,7 @@ class StaffController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Only an offboarded staff member can be reactivated here.',
-            ]);
+            ], 409);
         }
 
         // Rehiring goes through the same L2 gate as a new hire. SLMS360 set
@@ -407,7 +407,7 @@ class StaffController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'No staff found with that id, or the staff member is not active.',
-            ]);
+            ], 422);
         }
 
         $this->authorize('manage-staff-member', $staff);

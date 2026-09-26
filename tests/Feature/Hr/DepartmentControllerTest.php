@@ -82,7 +82,7 @@ class DepartmentControllerTest extends TestCase
             'id' => $department->id,
         ]);
 
-        $response->assertOk();
+        $response->assertStatus(409);
         $response->assertJsonPath('status', false);
     }
 

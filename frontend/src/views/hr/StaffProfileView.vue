@@ -132,14 +132,14 @@ onMounted(load)
 
           <NCard title="Onboarding & offboarding checklists" class="gap-top">
             <NEmpty v-if="!profile.checklists.length" description="No checklists yet." />
-            <div v-for="c in profile.checklists" :key="c.id" class="checklist">
+            <RouterLink v-for="c in profile.checklists" :key="c.id" :to="{ name: 'checklist', params: { id: c.id } }" class="checklist">
               <div class="checklist-head">
                 <strong>{{ c.type === 'onboarding' ? 'Onboarding' : 'Offboarding' }}</strong>
                 <NTag size="small" round :type="c.status === 'completed' ? 'success' : c.status === 'cancelled' ? 'default' : 'info'">{{ c.status.replace('_', ' ') }}</NTag>
                 <span class="muted">{{ c.closed_tasks_count }} of {{ c.tasks_count }} tasks done</span>
               </div>
               <NProgress type="line" :percentage="c.tasks_count ? Math.round((c.closed_tasks_count / c.tasks_count) * 100) : 0" :show-indicator="false" :height="8" />
-            </div>
+            </RouterLink>
           </NCard>
         </NGridItem>
 
@@ -200,6 +200,12 @@ onMounted(load)
 
 .gap-top {
   margin-top: 16px;
+}
+
+.checklist {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .checklist + .checklist {

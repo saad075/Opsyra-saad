@@ -175,3 +175,38 @@ export interface Named {
   id: number
   name: string
 }
+
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'skipped'
+
+export interface ChecklistTask {
+  id: number
+  staff_checklist_id: number
+  title: string
+  description: string | null
+  assignee_user_id: number | null
+  assignee_role_id: number | null
+  due_date: string | null
+  is_required: boolean
+  status: TaskStatus
+  note: string | null
+  completed_at: string | null
+  assignee_user?: Named | null
+  assignee_role?: Named | null
+  completed_by?: Named | null
+  checklist?: { id: number; user_id: number; type: 'onboarding' | 'offboarding'; anchor_date: string; staff: PersonRef & { avatar: string | null } }
+}
+
+export interface Checklist {
+  id: number
+  user_id: number
+  type: 'onboarding' | 'offboarding'
+  anchor_date: string
+  status: 'in_progress' | 'completed' | 'cancelled'
+  completed_at: string | null
+  staff: PersonRef & { avatar: string | null }
+  template: Named | null
+  tasks?: ChecklistTask[]
+  tasks_count?: number
+  closed_tasks_count?: number
+  overdue_tasks_count?: number
+}

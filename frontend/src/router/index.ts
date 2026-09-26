@@ -39,6 +39,10 @@ export const routes: RouteRecordRaw[] = [
       { path: 'hr/staff/:id(\\d+)', name: 'staff-profile', component: () => import('@/views/hr/StaffProfileView.vue'), meta: { title: 'Staff profile' } },
       { path: 'hr/staff/:id(\\d+)/edit', name: 'staff-edit', component: () => import('@/views/hr/StaffFormView.vue'), meta: { title: 'Edit staff', permission: 'HRMS-StaffManagement' } },
       { path: 'hr/approvals', name: 'approvals', component: () => import('@/views/hr/ApprovalsView.vue'), meta: { title: 'Approvals', permission: HR_APPROVERS } },
+      // My tasks and a single checklist are for everyone with a task; the API filters.
+      { path: 'tasks', name: 'tasks', component: () => import('@/views/tasks/MyTasksView.vue'), meta: { title: 'My tasks' } },
+      { path: 'hr/checklists', name: 'checklists', component: () => import('@/views/tasks/ChecklistsView.vue'), meta: { title: 'Checklists', permission: 'HRMS-StaffManagement' } },
+      { path: 'hr/checklists/:id(\\d+)', name: 'checklist', component: () => import('@/views/tasks/ChecklistView.vue'), meta: { title: 'Checklist' } },
       { path: 'hr/branches', name: 'branches', component: () => import('@/views/hr/BranchesView.vue'), meta: { title: 'Branches', permission: 'HRMS-StaffManagement' } },
     ],
   },

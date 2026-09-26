@@ -37,6 +37,9 @@ describe('route table', () => {
     expect(r.resolve('/hr/staff/42').name).toBe('staff-profile')
     expect(r.resolve('/hr/staff/42/edit').name).toBe('staff-edit')
     expect(r.resolve('/hr/approvals').name).toBe('approvals')
+    expect(r.resolve('/tasks').name).toBe('tasks')
+    expect(r.resolve('/hr/checklists').name).toBe('checklists')
+    expect(r.resolve('/hr/checklists/7').name).toBe('checklist')
   })
 })
 

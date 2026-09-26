@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {
   BusinessOutline,
+  CheckboxOutline,
   CheckmarkDoneOutline,
+  ListOutline,
   HomeOutline,
   LocationOutline,
   MoonOutline,
@@ -44,6 +46,7 @@ type Item = MenuOption & { permission?: string | string[]; children?: Item[] }
 const menu = computed<MenuOption[]>(() => {
   const items: Item[] = [
     { key: 'dashboard', label: link('dashboard', 'Home'), icon: icon(HomeOutline) },
+    { key: 'tasks', label: link('tasks', 'My tasks'), icon: icon(CheckboxOutline) },
     {
       key: 'hr',
       label: 'HR',
@@ -52,6 +55,7 @@ const menu = computed<MenuOption[]>(() => {
         { key: 'hr-dashboard', label: link('hr-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: 'HRMS-StaffManagement' },
         { key: 'staff', label: link('staff', 'Staff'), icon: icon(PersonOutline), permission: 'HRMS-StaffManagement' },
         { key: 'approvals', label: link('approvals', 'Approvals'), icon: icon(CheckmarkDoneOutline), permission: HR_APPROVERS },
+        { key: 'checklists', label: link('checklists', 'Checklists'), icon: icon(ListOutline), permission: 'HRMS-StaffManagement' },
         { key: 'branches', label: link('branches', 'Branches'), icon: icon(LocationOutline), permission: 'HRMS-StaffManagement' },
       ],
     },
@@ -79,13 +83,19 @@ const menu = computed<MenuOption[]>(() => {
     .filter((item) => visible(item) && (!item.children || item.children.length > 0))
 })
 
-// Staff profile, add and edit pages highlight "Staff" in the menu.
-const activeKey = computed(() => (String(route.name).startsWith('staff-') ? 'staff' : String(route.name)))
+// Staff profile, add and edit pages highlight "Staff" in the menu; one
+// checklist highlights "Checklists" for HR and "My tasks" for everyone else.
+const activeKey = computed(() => {
+  const name = String(route.name)
+  if (name.startsWith('staff-')) return 'staff'
+  if (name === 'checklist') return auth.can('HRMS-StaffManagement') ? 'checklists' : 'tasks'
+  return name
+})
 
 // Keep the current page's module open.
 const openGroups = computed(() => {
   const name = String(route.name)
-  if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals'].includes(name)) return ['hr']
+  if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
   if (name.startsWith('payroll-')) return ['payroll']
   if (name === 'setup' || name === 'company-settings') return ['settings']
   return []

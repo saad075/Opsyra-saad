@@ -1,4 +1,4 @@
-import type { Me, Payslip, PayslipStatus } from '@/api/types'
+import type { Me, PayCalculation, Payslip, PayslipStatus } from '@/api/types'
 import { formatDate } from '@/lib/staff'
 
 export const PAYSLIP_STATUS: Record<PayslipStatus, { label: string; type: 'default' | 'info' | 'success' | 'warning' }> = {
@@ -39,3 +39,11 @@ export function canApprove(slip: Pick<Payslip, 'status' | 'l1_approved_by' | 'us
 export function isUnpaid(slip: Pick<Payslip, 'status' | 'payment_method' | 'cheque_number'>): boolean {
   return slip.status === 'draft' || slip.status === 'l1_approved' || (slip.status === 'approved' && slip.payment_method === 'cheque' && !slip.cheque_number)
 }
+
+export const CALCULATION_LABEL: Record<PayCalculation, string> = {
+  fixed: 'A fixed amount',
+  percent_of_basic: 'A percentage of basic pay',
+  percent_of_gross: 'A percentage of gross pay',
+}
+
+export const FREQUENCY_LABEL: Record<'monthly' | 'biweekly', string> = { monthly: 'Monthly', biweekly: 'Every two weeks' }

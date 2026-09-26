@@ -3,7 +3,9 @@
 namespace App\Modules\Payroll\Services;
 
 use App\Modules\Payroll\Models\StaffSalary;
+use App\Modules\Payroll\Models\StaffSalaryComponent;
 use App\Modules\Payroll\Support\Money;
+use Illuminate\Support\Collection;
 
 /**
  * Turns a salary's components into itemised lines for one pay period.
@@ -24,9 +26,20 @@ class SalaryCalculator
      */
     public function calculate(StaffSalary $salary, float $factor = 1.0): array
     {
-        $currency = $salary->currency;
-        $items = $salary->components()->with('component')->get()
-            ->sortBy(fn ($item) => [$item->component->sequence, $item->component->id]);
+        return $this->calculateItems($salary->components()->with('component')->get(), $salary->currency, $factor);
+    }
+
+    /**
+     * The same calculation on components that needn't be saved — the salary
+     * editor's live preview uses it, so the preview can't drift from what a
+     * payslip will actually say.
+     *
+     * @param  Collection<int, StaffSalaryComponent>  $items  each with its component relation set
+     * @return array{currency: string, lines: list<array>, gross: float, deductions: float, net: float}
+     */
+    public function calculateItems(Collection $items, string $currency, float $factor = 1.0): array
+    {
+        $items = $items->sortBy(fn ($item) => [$item->component->sequence, $item->component->id]);
 
         $basicItem = $items->first(fn ($item) => $item->component->is_basic);
         $basic = $basicItem ? $this->fixed($basicItem, $factor, $currency) : 0.0;

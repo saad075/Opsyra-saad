@@ -25,6 +25,8 @@ Route::middleware('auth:sanctum')->prefix('payroll')->group(function () {
     });
 
     Route::prefix('salaries')->group(function () {
+        Route::get('overview', [StaffSalaryController::class, 'overview']);
+        Route::post('preview', [StaffSalaryController::class, 'preview']);
         Route::post('set', [StaffSalaryController::class, 'set']);
         Route::post('history', [StaffSalaryController::class, 'history']);
         Route::post('current', [StaffSalaryController::class, 'current']);

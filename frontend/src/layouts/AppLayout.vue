@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   BusinessOutline,
+  CashOutline,
   CheckboxOutline,
   CheckmarkDoneOutline,
   ChatbubblesOutline,
@@ -8,6 +9,7 @@ import {
   ExitOutline,
   GitNetworkOutline,
   KeyOutline,
+  LayersOutline,
   PlayCircleOutline,
   ReceiptOutline,
   ListOutline,
@@ -75,8 +77,10 @@ const menu = computed<MenuOption[]>(() => {
       children: [
         { key: 'payroll-dashboard', label: link('payroll-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: PAYROLL_VIEWERS },
         { key: 'payroll-runs', label: link('payroll-runs', 'Pay runs'), icon: icon(PlayCircleOutline), permission: PAYROLL_VIEWERS },
+        { key: 'payroll-salaries', label: link('payroll-salaries', 'Salaries'), icon: icon(CashOutline), permission: 'HRMS-SalaryManagement' },
         { key: 'payroll-cheques', label: link('payroll-cheques', 'Cheques'), icon: icon(ReceiptOutline), permission: PAYROLL_VIEWERS },
         { key: 'payroll-queries', label: link('payroll-queries', 'Salary queries'), icon: icon(ChatbubblesOutline), permission: 'HRMS-SalaryManagement' },
+        { key: 'payroll-components', label: link('payroll-components', 'Pay components'), icon: icon(LayersOutline), permission: 'HRMS-SalaryManagement' },
       ],
     },
     {

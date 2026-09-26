@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter, type RouteLocationNormalized } from 'vue-router'
 import type { Me } from '@/api/types'
+import { setupStepRoutes } from '@/lib/setupSteps'
 import { guard, routes } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -49,8 +50,20 @@ describe('route table', () => {
     expect(r.resolve('/payroll/cheques').name).toBe('payroll-cheques')
     expect(r.resolve('/payroll/queries').name).toBe('payroll-queries')
     expect(r.resolve('/my/payslips').name).toBe('my-payslips')
+    expect(r.resolve('/payroll/salaries').name).toBe('payroll-salaries')
+    expect(r.resolve('/payroll/components').name).toBe('payroll-components')
     expect(r.resolve('/hr/checklists').name).toBe('checklists')
     expect(r.resolve('/hr/checklists/7').name).toBe('checklist')
+  })
+})
+
+describe('setup wizard links', () => {
+  it('sends every setup step to a screen that exists', () => {
+    const r = createRouter({ history: createMemoryHistory(), routes })
+    for (const [step, name] of Object.entries(setupStepRoutes)) {
+      expect(name, `${step} has no screen`).not.toBeNull()
+      expect(r.hasRoute(name!), `${step} links to missing route ${name}`).toBe(true)
+    }
   })
 })
 

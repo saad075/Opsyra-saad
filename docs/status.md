@@ -67,11 +67,16 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   light/dark mode, the Setup wizard, Company details, Branches, HR and
   Payroll dashboards, Staff (list, profile, add/edit, offboard), Approvals,
   My tasks, checklists, and **Payroll: pay runs with bulk approve,
-  printable payslips, cheques, salary queries, My payslips** (2026-09-25).
+  printable payslips, cheques, salary queries, My payslips** (2026-09-25),
+  and **every Setup wizard step now has its screen**: departments and job
+  titles, roles, approvers, leaving reasons, checklist templates, pay
+  components, salaries (live preview) and bank details (2026-09-26).
+  Payroll rules added 2026-09-26 (user): nobody approves their own
+  payslip; carry forward only takes pay that hasn't gone out.
 - **Opsyra Central** (`central/`): landing site, pricing structure (per
   country, admin-editable), free-trial sign-up, super-admin subscription
   dashboard, and the nightly-rebuilt live demo company.
-- **Tests: 181 country API + 31 Central + 21 frontend, all passing**; the API ones run against real Postgres 17 + Memurai (not
+- **Tests: 192 country API + 31 Central + 25 frontend, all passing**; the API ones run against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
@@ -90,8 +95,8 @@ staff ID card (build new: no source to port), subscription enforcement, US
 payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 (ledger is new-build — see Checkpoint 1 decisions).
 
-**Next screens:** the remaining Setup wizard screens (departments, roles and approvers, leaving reasons,
-checklist templates, pay components, salaries).
+**Next:** the user's choice between the test deployment (on hold until
+the screens were ready — they now are) and the Attendance module.
 
 **Test deployment: on hold until the frontend is ready** (user decision,
 2026-09-24). Target is `opsyra.brainstormertech.com` on BrainStormers'

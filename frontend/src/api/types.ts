@@ -358,3 +358,60 @@ export interface ApproverRow {
   role_level: 0 | 1 | 2
   level: 0 | 1 | 2
 }
+
+export type PayCalculation = 'fixed' | 'percent_of_basic' | 'percent_of_gross'
+
+export interface PayComponent {
+  id: number
+  name: string
+  code: string
+  type: 'earning' | 'deduction'
+  calculation: PayCalculation
+  is_basic: boolean
+  prorate: boolean
+  sequence: number
+  is_active: boolean
+  is_system: boolean
+}
+
+export interface SalaryOverviewRow {
+  id: number
+  name: string
+  designation: string | null
+  status: string
+  has_bank_account: boolean
+  salary: { id: number; effective_from: string; pay_frequency: 'monthly' | 'biweekly'; currency: string; gross: number; net: number } | null
+}
+
+export interface SalaryPeriod {
+  currency: string
+  lines: { pay_component_id: number; code: string; label: string; type: 'earning' | 'deduction'; amount: number }[]
+  gross: number
+  deductions: number
+  net: number
+}
+
+export interface StaffSalary {
+  id: number
+  user_id: number
+  effective_from: string
+  pay_frequency: 'monthly' | 'biweekly'
+  currency: string
+  notes: string | null
+  components: { pay_component_id: number; value: number; component: Pick<PayComponent, 'id' | 'name' | 'code' | 'type' | 'calculation'> }[]
+  created_by?: Named | null
+  per_period?: SalaryPeriod
+}
+
+export interface BankAccount {
+  account_holder_name: string
+  bank_name: string
+  bank_country: string
+  account_number: string | null
+  iban: string | null
+  routing_number: string | null
+  tax_id: string | null
+  bank_code: string | null
+  swift_bic: string | null
+  account_currency: string | null
+}

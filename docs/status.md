@@ -70,7 +70,7 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
 - **Opsyra Central** (`central/`): landing site, pricing structure (per
   country, admin-editable), free-trial sign-up, super-admin subscription
   dashboard, and the nightly-rebuilt live demo company.
-- **159/159 tests passing**, all against real Postgres 17 + Memurai (not
+- **Tests: 180 country API + 31 Central + 17 frontend, all passing**; the API ones run against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 

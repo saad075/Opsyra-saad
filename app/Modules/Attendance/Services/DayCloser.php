@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\DB;
  * off and holidays are recorded as such, and a clock-in never clocked out
  * becomes a missed checkout. Looks back a week, so a missed run catches up;
  * never before the person joined or the company started keeping
- * attendance. Visit-based days are settled from their visits instead.
+ * attendance. A visit-based worker's day is settled from their visits.
  */
 class DayCloser
 {
     private const LOOK_BACK_DAYS = 7;
 
-    public function __construct(private WorkCalendar $calendar, private DayEvaluator $evaluator) {}
+    public function __construct(private WorkCalendar $calendar, private DayEvaluator $evaluator, private VisitDaySettler $visits) {}
 
     /** @return int days settled */
     public function closeFor(User $user, ?CarbonImmutable $now = null): int
@@ -55,8 +55,12 @@ class DayCloser
     {
         $expected = $this->calendar->expectationFor($user, $date);
 
-        if (! $expected->isTracked() || $expected->kind === 'visits' || ! $this->calendar->isOver($user, $date, $now, $expected)) {
+        if (! $expected->isTracked() || ! $this->calendar->isOver($user, $date, $now, $expected)) {
             return false;
+        }
+
+        if ($expected->kind === 'visits') {
+            return (bool) DB::transaction(fn () => $this->visits->settle($user, $expected, isOver: true, now: $now)?->closed_at);
         }
 
         return DB::transaction(function () use ($user, $date, $expected, $now) {

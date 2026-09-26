@@ -26,7 +26,7 @@ class CloseOutAttendanceCommand extends Command
         Tenant::query()->each(function (Tenant $tenant) use ($tenantContext, $closer, &$total) {
             $tenantContext->runAs($tenant->id, function () use ($closer, &$total) {
                 User::whereIn('status', ['active', 'pending'])
-                    ->where('attendance_mode', 'schedule')
+                    ->whereIn('attendance_mode', ['schedule', 'visits'])
                     ->each(function (User $user) use ($closer, &$total) {
                         $total += $closer->closeFor($user);
                     });

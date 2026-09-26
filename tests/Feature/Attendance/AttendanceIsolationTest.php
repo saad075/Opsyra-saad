@@ -6,6 +6,9 @@ use App\Modules\Attendance\Models\AttendanceCorrection;
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\AttendancePunch;
 use App\Modules\Attendance\Models\Holiday;
+use App\Modules\Attendance\Models\Visit;
+use App\Modules\Attendance\Models\VisitLocation;
+use App\Modules\Attendance\Models\VisitPlan;
 use App\Modules\Attendance\Models\WorkSchedule;
 use App\Modules\Attendance\Models\WorkScheduleAssignment;
 use App\Modules\Attendance\Models\WorkScheduleDay;
@@ -65,6 +68,27 @@ class AttendanceIsolationTest extends TestCase
     {
         $this->assertModelIsTenantIsolated(AttendanceCorrection::class, fn () => AttendanceCorrection::create([
             'user_id' => $this->userB->id, 'date' => '2026-03-02', 'requested_in' => '09:00', 'reason' => 'B',
+        ]));
+    }
+
+    public function test_visit_locations_are_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(VisitLocation::class, fn () => VisitLocation::create(['name' => 'B client', 'address' => 'B street']));
+    }
+
+    public function test_visit_plans_are_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(VisitPlan::class, fn () => VisitPlan::create([
+            'visit_location_id' => VisitLocation::create(['name' => 'B client', 'address' => 'B street'])->id, 'user_id' => $this->userB->id,
+            'weekdays' => [1], 'start_time' => '08:00', 'end_time' => '09:00', 'starts_on' => '2026-03-01',
+        ]));
+    }
+
+    public function test_visits_are_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(Visit::class, fn () => Visit::create([
+            'visit_location_id' => VisitLocation::create(['name' => 'B client', 'address' => 'B street'])->id, 'user_id' => $this->userB->id,
+            'date' => '2026-03-02', 'planned_start' => '2026-03-02 08:00:00+00', 'planned_end' => '2026-03-02 09:00:00+00',
         ]));
     }
 }

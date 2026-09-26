@@ -5,6 +5,10 @@ use App\Modules\Attendance\Http\Controllers\AttendanceSettingsController;
 use App\Modules\Attendance\Http\Controllers\AttendanceSheetController;
 use App\Modules\Attendance\Http\Controllers\HolidayController;
 use App\Modules\Attendance\Http\Controllers\MyAttendanceController;
+use App\Modules\Attendance\Http\Controllers\MyVisitsController;
+use App\Modules\Attendance\Http\Controllers\VisitBoardController;
+use App\Modules\Attendance\Http\Controllers\VisitLocationController;
+use App\Modules\Attendance\Http\Controllers\VisitPlanController;
 use App\Modules\Attendance\Http\Controllers\WorkScheduleController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,4 +54,35 @@ Route::middleware('auth:sanctum')->prefix('attendance')->group(function () {
     Route::get('policy', [AttendanceSettingsController::class, 'policy']);
     Route::post('policy/update', [AttendanceSettingsController::class, 'updatePolicy']);
     Route::post('staff-mode', [AttendanceSettingsController::class, 'setMode']);
+});
+
+// Visits: staff who work at clients' homes (home care). The first group is
+// the caregiver app (own visits only); the rest is for coordinators.
+Route::middleware('auth:sanctum')->prefix('visits')->group(function () {
+    Route::get('my-day', [MyVisitsController::class, 'day']);
+    Route::post('check-in', [MyVisitsController::class, 'checkIn']);
+    Route::post('check-out', [MyVisitsController::class, 'checkOut']);
+    Route::get('my-month', [MyVisitsController::class, 'month']);
+
+    Route::get('day', [VisitBoardController::class, 'day']);
+    Route::post('create', [VisitBoardController::class, 'store']);
+    Route::post('update', [VisitBoardController::class, 'update']);
+    Route::post('cancel', [VisitBoardController::class, 'cancel']);
+    Route::post('set-times', [VisitBoardController::class, 'setTimes']);
+    Route::get('review-queue', [VisitBoardController::class, 'reviewQueue']);
+    Route::post('review', [VisitBoardController::class, 'review']);
+
+    Route::prefix('locations')->group(function () {
+        Route::get('list', [VisitLocationController::class, 'index']);
+        Route::post('create', [VisitLocationController::class, 'store']);
+        Route::post('update', [VisitLocationController::class, 'update']);
+        Route::post('delete', [VisitLocationController::class, 'destroy']);
+    });
+
+    Route::prefix('plans')->group(function () {
+        Route::get('list', [VisitPlanController::class, 'index']);
+        Route::post('create', [VisitPlanController::class, 'store']);
+        Route::post('update', [VisitPlanController::class, 'update']);
+        Route::post('delete', [VisitPlanController::class, 'destroy']);
+    });
 });

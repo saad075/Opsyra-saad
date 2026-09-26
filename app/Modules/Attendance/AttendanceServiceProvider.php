@@ -4,6 +4,7 @@ namespace App\Modules\Attendance;
 
 use App\Models\User;
 use App\Modules\Attendance\Console\CloseOutAttendanceCommand;
+use App\Modules\Attendance\Console\GenerateVisitsCommand;
 use App\Modules\Attendance\Models\AttendanceCorrection;
 use App\Modules\Attendance\Models\WorkSchedule;
 use App\Modules\Attendance\Setup\AttendanceSetupSteps;
@@ -28,6 +29,8 @@ class AttendanceServiceProvider extends ServiceProvider
     {
         Gate::define('manage-attendance', fn (User $user) => $user->can('HRMS-AttendanceManagement'));
 
+        Gate::define('plan-visits', fn (User $user) => $user->can('HRMS-VisitPlanning'));
+
         // HR, or the person's own manager — never the person themselves.
         Gate::define('resolve-attendance-correction', fn (User $user, AttendanceCorrection $correction) => $correction->tenant_id === $user->tenant_id
             && $correction->user_id !== $user->id
@@ -37,7 +40,7 @@ class AttendanceServiceProvider extends ServiceProvider
         Tenant::created(fn (Tenant $tenant) => WorkSchedule::seedDefaultsFor($tenant));
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CloseOutAttendanceCommand::class]);
+            $this->commands([CloseOutAttendanceCommand::class, GenerateVisitsCommand::class]);
         }
     }
 }

@@ -12,6 +12,7 @@ Schedule::command('staff:process-offboarding')->dailyAt('00:05')->timezone('UTC'
 // Settles finished attendance days; hourly because "finished" depends on
 // each branch's timezone and on night shifts. Each day is settled once.
 Schedule::command('attendance:close-out')->hourlyAt(10)->withoutOverlapping();
+Schedule::command('visits:generate')->dailyAt('01:30')->timezone('UTC');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

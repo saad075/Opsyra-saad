@@ -72,7 +72,7 @@ class CloseOutTest extends AttendanceTestCase
         $this->assertSame('absent', $this->day('2026-03-04', $joiner)->status);
     }
 
-    public function test_untracked_and_visit_based_staff_are_left_alone(): void
+    public function test_untracked_staff_are_left_alone_and_visit_workers_are_settled_from_visits(): void
     {
         $this->inTenantA(fn () => $this->employee->update(['attendance_mode' => 'not_tracked']));
         $this->inTenantA(fn () => $this->manager->update(['attendance_mode' => 'visits']));
@@ -80,6 +80,7 @@ class CloseOutTest extends AttendanceTestCase
         $this->closeOut('2026-03-03 01:00');
 
         $this->assertNull($this->day('2026-03-02'));
-        $this->assertNull($this->day('2026-03-02', $this->manager));
+        // No visits planned that day: a day off, not an absence.
+        $this->assertSame('day_off', $this->day('2026-03-02', $this->manager)->status);
     }
 }

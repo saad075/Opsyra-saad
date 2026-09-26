@@ -168,7 +168,8 @@ class SetupWizardTest extends TestCase
     {
         $branchId = $this->actingAs($this->userA, 'sanctum')->postJson('/api/branches/create', ['name' => 'North'])->assertCreated()->json('data.id');
 
-        $this->inTenantA(fn () => UserBranch::create(['user_id' => $this->userA->id, 'branch_id' => $branchId, 'status' => true]));
+        // Its creator automatically belongs to it — so it has staff.
+        $this->inTenantA(fn () => $this->assertTrue(UserBranch::where('user_id', $this->userA->id)->where('branch_id', $branchId)->exists()));
 
         $this->actingAs($this->userA, 'sanctum')->postJson('/api/branches/delete', ['id' => $branchId])->assertStatus(409);
         $this->actingAs($this->userA, 'sanctum')->postJson('/api/branches/update', ['id' => $branchId, 'name' => 'North', 'status' => false])->assertOk();

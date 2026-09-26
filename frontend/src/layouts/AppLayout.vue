@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import {
   BusinessOutline,
+  CheckmarkDoneOutline,
   HomeOutline,
   LocationOutline,
   MoonOutline,
   PeopleOutline,
+  PersonOutline,
   RocketOutline,
   SettingsOutline,
   StatsChartOutline,
@@ -15,7 +17,8 @@ import { NAvatar, NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHea
 import { computed, h, ref, type Component } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import BrandMark from '@/components/BrandMark.vue'
-import { PAYROLL_VIEWERS } from '@/router'
+import BranchSwitcher from '@/components/BranchSwitcher.vue'
+import { HR_APPROVERS, PAYROLL_VIEWERS } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 
@@ -47,6 +50,8 @@ const menu = computed<MenuOption[]>(() => {
       icon: icon(PeopleOutline),
       children: [
         { key: 'hr-dashboard', label: link('hr-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'staff', label: link('staff', 'Staff'), icon: icon(PersonOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'approvals', label: link('approvals', 'Approvals'), icon: icon(CheckmarkDoneOutline), permission: HR_APPROVERS },
         { key: 'branches', label: link('branches', 'Branches'), icon: icon(LocationOutline), permission: 'HRMS-StaffManagement' },
       ],
     },
@@ -74,10 +79,13 @@ const menu = computed<MenuOption[]>(() => {
     .filter((item) => visible(item) && (!item.children || item.children.length > 0))
 })
 
+// Staff profile, add and edit pages highlight "Staff" in the menu.
+const activeKey = computed(() => (String(route.name).startsWith('staff-') ? 'staff' : String(route.name)))
+
 // Keep the current page's module open.
 const openGroups = computed(() => {
   const name = String(route.name)
-  if (name.startsWith('hr-') || name === 'branches') return ['hr']
+  if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals'].includes(name)) return ['hr']
   if (name.startsWith('payroll-')) return ['payroll']
   if (name === 'setup' || name === 'company-settings') return ['settings']
   return []
@@ -120,13 +128,14 @@ async function onUserMenu(key: string) {
       <div class="sider-brand" :class="{ dark: ui.isDark }">
         <BrandMark v-if="!collapsed" />
       </div>
-      <NMenu :value="String(route.name)" :options="menu" :default-expanded-keys="openGroups" :collapsed="collapsed" :collapsed-width="64" />
+      <NMenu :value="activeKey" :options="menu" :default-expanded-keys="openGroups" :collapsed="collapsed" :collapsed-width="64" />
     </NLayoutSider>
 
     <NLayout>
       <NLayoutHeader bordered class="app-header">
         <span class="company">{{ auth.me?.company.name }}</span>
         <div class="header-actions">
+          <BranchSwitcher />
           <NButton quaternary circle :aria-label="ui.isDark ? 'Switch to light mode' : 'Switch to dark mode'" @click="ui.toggle()">
             <template #icon>
               <NIcon><SunnyOutline v-if="ui.isDark" /><MoonOutline v-else /></NIcon>

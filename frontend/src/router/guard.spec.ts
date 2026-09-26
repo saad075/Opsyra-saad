@@ -32,6 +32,11 @@ describe('route table', () => {
     expect(r.resolve('/reset-password').name).toBe('reset-password')
     expect(r.resolve('/setup').name).toBe('setup')
     expect(r.resolve('/hr/branches').name).toBe('branches')
+    expect(r.resolve('/hr/staff').name).toBe('staff')
+    expect(r.resolve('/hr/staff/new').name).toBe('staff-new')
+    expect(r.resolve('/hr/staff/42').name).toBe('staff-profile')
+    expect(r.resolve('/hr/staff/42/edit').name).toBe('staff-edit')
+    expect(r.resolve('/hr/approvals').name).toBe('approvals')
   })
 })
 

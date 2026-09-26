@@ -267,6 +267,14 @@ class DemoCompanyBuilder
 
     private function access(): void
     {
+        // Leadership and HR/payroll work across every office, so they see
+        // all branches in staff lists (lists follow the viewer's branches).
+        foreach (['admin', 'ceo', 'cfo', 'hr', 'payroll'] as $key) {
+            foreach ($this->branches as $branch) {
+                UserBranch::firstOrCreate(['user_id' => $this->people[$key]->id, 'branch_id' => $branch->id], ['status' => true]);
+            }
+        }
+
         $this->people['hr']->assignRole(['HR Manager', 'Approver']);
         $this->people['payroll']->assignRole('Payroll Officer');
         $this->people['cfo']->assignRole('Senior approver');

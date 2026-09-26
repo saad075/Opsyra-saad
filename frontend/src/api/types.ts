@@ -104,3 +104,74 @@ export interface PayrollDashboard {
   }[]
   latest_breakdown: { label: string; type: 'earning' | 'deduction'; amount: number }[]
 }
+
+export interface StaffMember {
+  id: number
+  name: string
+  email: string
+  status: 'active' | 'pending' | 'pending_approval' | 'offboarded' | string
+  designation: string | null
+  phone: string | null
+  dob: string | null
+  joined_at: string | null
+  lefted_at: string | null
+  left_reason: string | null
+  is_remote: boolean
+  hierarchy_parent_id: number | null
+  national_id: string | null
+  blood_group: string | null
+  address: string | null
+  city: string | null
+  zip_code: string | null
+  avatar: string | null
+  branches: { branch_id: number; status: boolean; branch: { id: number; name: string } | null }[]
+  roles: { id: number; name: string }[]
+}
+
+export interface PersonRef {
+  id: number
+  name: string
+  designation?: string | null
+  status?: string
+}
+
+export interface OnboardingRequest {
+  id: number
+  status: 'pending' | 'approved' | 'rejected'
+  rejection_reason: string | null
+  reviewed_at: string | null
+  completed_at: string | null
+  created_at: string
+  staff?: PersonRef & { joined_at?: string | null }
+  requested_by?: PersonRef | null
+  reviewed_by?: PersonRef | null
+}
+
+export interface OffboardRequest {
+  id: number
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  last_working_day: string
+  note: string | null
+  rejection_reason: string | null
+  direct_reports_count: number
+  created_at: string
+  staff?: PersonRef
+  requested_by?: PersonRef | null
+  reviewed_by?: PersonRef | null
+  new_manager?: PersonRef | null
+  departure_reason?: { id: number; name: string } | null
+}
+
+export interface StaffProfile {
+  staff: StaffMember
+  manager: PersonRef | null
+  direct_reports: PersonRef[]
+  onboarding: OnboardingRequest | null
+  offboarding: OffboardRequest | null
+  checklists: { id: number; type: 'onboarding' | 'offboarding'; status: string; anchor_date: string; tasks_count: number; closed_tasks_count: number }[]
+}
+
+export interface Named {
+  id: number
+  name: string
+}

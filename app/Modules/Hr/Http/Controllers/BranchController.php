@@ -31,6 +31,10 @@ class BranchController extends Controller
 
         $branch = Branch::create($this->validated($request) + ['status' => true]);
 
+        // Whoever creates a branch belongs to it (and sees it), so a new
+        // company's admin isn't left looking at an empty staff list.
+        UserBranch::firstOrCreate(['user_id' => $request->user()->id, 'branch_id' => $branch->id], ['status' => true]);
+
         return response()->json(['status' => true, 'message' => 'Branch created.', 'data' => $branch], 201);
     }
 

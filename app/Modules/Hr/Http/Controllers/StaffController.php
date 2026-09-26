@@ -4,6 +4,10 @@ namespace App\Modules\Hr\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Hr\Models\StaffChecklist;
+use App\Modules\Hr\Models\StaffChecklistTask;
+use App\Modules\Hr\Models\StaffOffboardRequest;
+use App\Modules\Hr\Models\StaffOnboardingRequest;
 use App\Modules\Hr\Models\UserBranch;
 use App\Modules\Hr\Models\UserUpdateLog;
 use App\Modules\Hr\Services\StaffOnboarding;
@@ -77,6 +81,41 @@ class StaffController extends Controller
             'status' => true,
             'message' => 'Staff lists',
             'data' => $query->get(),
+        ]);
+    }
+
+    /**
+     * One staff member's profile: details, branches, roles, manager, direct
+     * reports, where they are in joining/leaving, and their checklists.
+     * HR sees anyone in the company; everyone else only themselves.
+     */
+    public function show(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => ['required', 'integer', ValidationRule::exists('users', 'id')->where('tenant_id', $request->user()->tenant_id)],
+        ]);
+
+        $staff = User::with(['branches.branch:id,name', 'roles:id,name'])->findOrFail($validated['id']);
+
+        if ($staff->id !== $request->user()->id) {
+            $this->authorize('manage-staff-member', $staff);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Staff profile',
+            'data' => [
+                'staff' => $staff,
+                // Any status: a manager who has since left is still worth showing.
+                'manager' => $staff->hierarchy_parent_id ? User::find($staff->hierarchy_parent_id, ['id', 'name', 'designation', 'status']) : null,
+                'direct_reports' => User::where('hierarchy_parent_id', $staff->id)->where('status', 'active')->orderBy('name')->get(['id', 'name', 'designation']),
+                'onboarding' => StaffOnboardingRequest::with(['requestedBy:id,name', 'reviewedBy:id,name'])->where('user_id', $staff->id)->latest('id')->first(),
+                'offboarding' => StaffOffboardRequest::with(['requestedBy:id,name', 'reviewedBy:id,name', 'departureReason:id,name', 'newManager:id,name'])->where('user_id', $staff->id)->latest('id')->first(),
+                'checklists' => StaffChecklist::withCount([
+                    'tasks',
+                    'tasks as closed_tasks_count' => fn ($q) => $q->whereIn('status', StaffChecklistTask::CLOSED_STATUSES),
+                ])->where('user_id', $staff->id)->latest('id')->get(),
+            ],
         ]);
     }
 

@@ -5,6 +5,7 @@ use App\Modules\Hr\Http\Controllers\ChecklistTemplateController;
 use App\Modules\Hr\Http\Controllers\DepartmentController;
 use App\Modules\Hr\Http\Controllers\DepartureReasonController;
 use App\Modules\Hr\Http\Controllers\HrDashboardController;
+use App\Modules\Hr\Http\Controllers\MyBranchesController;
 use App\Modules\Hr\Http\Controllers\StaffChecklistController;
 use App\Modules\Hr\Http\Controllers\StaffController;
 use App\Modules\Hr\Http\Controllers\StaffOffboardingController;
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Route;
 // bootstrap/app.php) — only auth:sanctum needs adding here.
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('hr/dashboard', HrDashboardController::class);
+
+    Route::get('my-branches', [MyBranchesController::class, 'index']);
+    Route::post('my-branches/select', [MyBranchesController::class, 'select']);
 
     Route::prefix('branches')->group(function () {
         Route::get('list', [BranchController::class, 'index']);
@@ -41,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('staff')->group(function () {
         Route::post('create', [StaffController::class, 'create']);
         Route::post('update', [StaffController::class, 'update']);
+        Route::post('show', [StaffController::class, 'show']);
         Route::post('list', [StaffController::class, 'list']);
         Route::post('index', [StaffController::class, 'index']);
         Route::post('limited-list', [StaffController::class, 'limitedList']);

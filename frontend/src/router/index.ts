@@ -16,6 +16,9 @@ declare module 'vue-router' {
 /** Payroll staff, or anyone who approves pay (mirrors the API's view-payroll gate). */
 export const PAYROLL_VIEWERS = ['HRMS-SalaryManagement', 'HRMS-Approval-L1', 'HRMS-Approval-L2']
 
+/** Who uses the Approvals screen: level-2 approvers, and HR (rejected hires to notify). */
+export const HR_APPROVERS = ['HRMS-Approval-L2', 'HRMS-StaffManagement']
+
 export const routes: RouteRecordRaw[] = [
   // Order matters: both layouts sit at "/", and on a tie Vue Router picks
   // the first. The app layout must come first so "/" opens Home — with the
@@ -30,6 +33,12 @@ export const routes: RouteRecordRaw[] = [
       { path: 'settings/company', name: 'company-settings', component: () => import('@/views/settings/CompanySettingsView.vue'), meta: { title: 'Company details', permission: 'HRMS-CompanySettings' } },
       { path: 'hr/dashboard', name: 'hr-dashboard', component: () => import('@/views/hr/HrDashboardView.vue'), meta: { title: 'HR dashboard', permission: 'HRMS-StaffManagement' } },
       { path: 'payroll/dashboard', name: 'payroll-dashboard', component: () => import('@/views/payroll/PayrollDashboardView.vue'), meta: { title: 'Payroll dashboard', permission: PAYROLL_VIEWERS } },
+      { path: 'hr/staff', name: 'staff', component: () => import('@/views/hr/StaffListView.vue'), meta: { title: 'Staff', permission: 'HRMS-StaffManagement' } },
+      { path: 'hr/staff/new', name: 'staff-new', component: () => import('@/views/hr/StaffFormView.vue'), meta: { title: 'Add staff', permission: 'HRMS-StaffManagement' } },
+      // No route permission: people may open their own profile; the API decides who sees whom.
+      { path: 'hr/staff/:id(\\d+)', name: 'staff-profile', component: () => import('@/views/hr/StaffProfileView.vue'), meta: { title: 'Staff profile' } },
+      { path: 'hr/staff/:id(\\d+)/edit', name: 'staff-edit', component: () => import('@/views/hr/StaffFormView.vue'), meta: { title: 'Edit staff', permission: 'HRMS-StaffManagement' } },
+      { path: 'hr/approvals', name: 'approvals', component: () => import('@/views/hr/ApprovalsView.vue'), meta: { title: 'Approvals', permission: HR_APPROVERS } },
       { path: 'hr/branches', name: 'branches', component: () => import('@/views/hr/BranchesView.vue'), meta: { title: 'Branches', permission: 'HRMS-StaffManagement' } },
     ],
   },

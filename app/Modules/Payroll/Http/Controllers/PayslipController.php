@@ -100,9 +100,14 @@ class PayslipController extends Controller
     {
         $this->authorize('manage-salaries');
 
-        $count = $this->approvals->carryForward($this->validateIds($request), $request->user());
+        $result = $this->approvals->carryForward($this->validateIds($request), $request->user());
 
-        return response()->json(['status' => true, 'message' => "{$count} payslip(s) carried forward."]);
+        $message = "{$result['carried']} payslip(s) carried forward.";
+        if ($result['skipped']) {
+            $message .= " {$result['skipped']} skipped: already paid, or already carried forward.";
+        }
+
+        return response()->json(['status' => true, 'message' => $message, 'data' => $result]);
     }
 
     public function pendingCheques()

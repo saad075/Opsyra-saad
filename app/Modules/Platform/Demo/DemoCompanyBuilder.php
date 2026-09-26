@@ -427,6 +427,9 @@ class DemoCompanyBuilder
             if ($monthsAgo > 0) {
                 $this->approvals->approve($ids, $l1);
                 $this->approvals->approve($ids, $l2);
+                // Nobody approves their own pay: the CFO's own payslip needs
+                // the other senior approver.
+                $this->approvals->approve($ids, $this->people['ceo']);
 
                 // Older cheques have numbers; last month's are still to do.
                 if ($monthsAgo > 1) {

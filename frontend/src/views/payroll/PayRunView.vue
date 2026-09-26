@@ -7,7 +7,7 @@ import { api, errorMessage } from '@/api/client'
 import type { ApiEnvelope, PayRunDetail, Payslip, PayslipStatus } from '@/api/types'
 import StatCard from '@/components/StatCard.vue'
 import { formatMoney } from '@/lib/money'
-import { canApprove, PAYROLL_MANAGERS, PAYSLIP_STATUS, periodLabel } from '@/lib/payroll'
+import { canApprove, isUnpaid, PAYROLL_MANAGERS, PAYSLIP_STATUS, periodLabel } from '@/lib/payroll'
 import { formatDate } from '@/lib/staff'
 import { useAuthStore } from '@/stores/auth'
 
@@ -52,7 +52,7 @@ const shown = computed(() => (filter.value ? payslips.value.filter((s) => s.stat
 const selected = computed(() => payslips.value.filter((s) => checked.value.includes(s.id)))
 const approvable = computed(() => selected.value.filter((s) => canApprove(s, auth.me)))
 const drafts = computed(() => selected.value.filter((s) => s.status === 'draft'))
-const unpaid = computed(() => selected.value.filter((s) => s.status === 'draft' || s.status === 'l1_approved'))
+const unpaid = computed(() => selected.value.filter(isUnpaid))
 const waitingForMe = computed(() => payslips.value.filter((s) => canApprove(s, auth.me)))
 
 const columns = computed<DataTableColumns<Payslip>>(() => [

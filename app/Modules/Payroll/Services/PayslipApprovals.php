@@ -38,7 +38,11 @@ class PayslipApprovals
                     $result['skipped'][] = ['id' => $payslip->id, 'reason' => $reason];
                 };
 
-                if ($payslip->status === 'draft' && ! $isL2) {
+                // Nobody signs off their own pay, at either level (user decision,
+                // 2026-09-25; SLMS360 allowed it).
+                if ($payslip->user_id === $actor->id) {
+                    $skip('Nobody can approve their own payslip.');
+                } elseif ($payslip->status === 'draft' && ! $isL2) {
                     $payslip->update(['status' => 'l1_approved', 'l1_approved_by' => $actor->id, 'l1_approved_at' => now()]);
                     $result['l1_approved'][] = $payslip->id;
                 } elseif ($payslip->status === 'draft' || $payslip->status === 'l1_approved') {
@@ -63,17 +67,25 @@ class PayslipApprovals
      * Moves unpaid pay into the next period as a credit adjustment (SLMS360's
      * carry-forward). The payslip is closed as carried_forward.
      *
+     * Only pay that hasn't gone out: a draft or level-1 payslip, or an
+     * approved one paid by cheque whose cheque hasn't been written. SLMS360
+     * allowed any approved payslip, which pays twice if the transfer or
+     * cheque already went (user decision, 2026-09-25).
+     *
      * @param  list<int>  $ids
+     * @return array{carried: int, skipped: int}
      */
-    public function carryForward(array $ids, User $actor): int
+    public function carryForward(array $ids, User $actor): array
     {
-        $count = 0;
+        $result = ['carried' => 0, 'skipped' => 0];
 
         foreach ($ids as $id) {
-            DB::transaction(function () use ($id, $actor, &$count) {
+            DB::transaction(function () use ($id, $actor, &$result) {
                 $payslip = Payslip::whereKey($id)->lockForUpdate()->firstOrFail();
 
-                if ($payslip->status === 'carried_forward') {
+                if (! self::isUnpaid($payslip)) {
+                    $result['skipped']++;
+
                     return;
                 }
 
@@ -91,11 +103,18 @@ class PayslipApprovals
                 }
 
                 $payslip->update(['status' => 'carried_forward']);
-                $count++;
+                $result['carried']++;
             });
         }
 
-        return $count;
+        return $result;
+    }
+
+    /** Pay that hasn't gone out yet, so can still be carried forward. */
+    public static function isUnpaid(Payslip $payslip): bool
+    {
+        return in_array($payslip->status, ['draft', 'l1_approved'], true)
+            || ($payslip->status === 'approved' && $payslip->payment_method === 'cheque' && $payslip->cheque_number === null);
     }
 
     public function saveChequeNumber(Payslip $payslip, string $chequeNumber): void

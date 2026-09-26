@@ -211,6 +211,56 @@ class PayRunTest extends PayrollTestCase
         $this->assertSame('carried_forward', $this->inTenantA(fn () => Payslip::findOrFail($march->id)->status));
     }
 
+    public function test_nobody_approves_their_own_payslip(): void
+    {
+        $this->giveStandardSalary($this->approverL1);
+        $this->giveStandardSalary($this->approverL2);
+        $this->startRun();
+        $l1Own = $this->payslipFor($this->approverL1->id)->id;
+        $l2Own = $this->payslipFor($this->approverL2->id)->id;
+
+        $this->actingAs($this->approverL1, 'sanctum')->postJson('/api/payroll/payslips/approve', ['ids' => [$l1Own, $l2Own]])
+            ->assertOk()
+            ->assertJsonPath('data.l1_approved', [$l2Own])
+            ->assertJsonPath('data.skipped.0.reason', 'Nobody can approve their own payslip.');
+
+        $this->actingAs($this->approverL2, 'sanctum')->postJson('/api/payroll/payslips/approve', ['ids' => [$l1Own, $l2Own]])
+            ->assertOk()
+            ->assertJsonPath('data.approved', [$l1Own])
+            ->assertJsonPath('data.skipped.0.id', $l2Own);
+
+        $this->assertSame('l1_approved', $this->payslipFor($this->approverL2->id)->status);
+    }
+
+    public function test_only_pay_that_has_not_gone_out_can_be_carried_forward(): void
+    {
+        $second = $this->inTenantA(fn () => $this->makeStaff(['joined_at' => '2026-01-01']));
+        $third = $this->inTenantA(fn () => $this->makeStaff(['joined_at' => '2026-01-01']));
+        foreach ([$this->employee, $second, $third] as $person) {
+            $this->giveStandardSalary($person);
+        }
+        $this->inTenantA(fn () => StaffBankAccount::create([
+            'user_id' => $this->employee->id, 'account_holder_name' => 'E', 'bank_name' => 'B', 'bank_country' => 'US', 'account_number' => '1234',
+        ]));
+        $this->startRun();
+
+        $transfer = $this->payslipFor($this->employee->id)->id;
+        $chequeWritten = $this->payslipFor($second->id)->id;
+        $chequeNotYet = $this->payslipFor($third->id)->id;
+
+        $this->actingAs($this->approverL2, 'sanctum')->postJson('/api/payroll/payslips/approve', ['ids' => [$transfer, $chequeWritten, $chequeNotYet]])->assertOk();
+        $this->actingAs($this->payrollOfficer, 'sanctum')->postJson('/api/payroll/payslips/cheque-number', ['id' => $chequeWritten, 'cheque_number' => '0042'])->assertOk();
+
+        $this->actingAs($this->payrollOfficer, 'sanctum')
+            ->postJson('/api/payroll/payslips/carry-forward', ['ids' => [$transfer, $chequeWritten, $chequeNotYet]])
+            ->assertOk()
+            ->assertJsonPath('data', ['carried' => 1, 'skipped' => 2]);
+
+        $this->assertSame('approved', $this->payslipFor($this->employee->id)->status);
+        $this->assertSame('approved', $this->payslipFor($second->id)->status);
+        $this->assertSame('carried_forward', $this->payslipFor($third->id)->status);
+    }
+
     public function test_staff_see_only_their_own_released_payslips(): void
     {
         $this->giveStandardSalary($this->employee);

@@ -23,13 +23,19 @@ export function periodLabel(p: { period_start: string; period_end: string; frequ
 /**
  * Whether this person can approve this payslip now — mirrors the API's
  * rules (PayslipApprovals): level 1 moves a draft on; level 2 approves a
- * draft or a level-1 payslip, but never one they approved at level 1.
+ * draft or a level-1 payslip, but never one they approved at level 1; and
+ * nobody approves their own pay.
  */
-export function canApprove(slip: Pick<Payslip, 'status' | 'l1_approved_by'>, me: Pick<Me, 'user' | 'permissions'> | null): boolean {
-  if (!me) return false
+export function canApprove(slip: Pick<Payslip, 'status' | 'l1_approved_by' | 'user_id'>, me: Pick<Me, 'user' | 'permissions'> | null): boolean {
+  if (!me || slip.user_id === me.user.id) return false
   const l1 = me.permissions.includes('HRMS-Approval-L1')
   const l2 = me.permissions.includes('HRMS-Approval-L2')
   if (slip.status === 'draft') return l1 || l2
   if (slip.status === 'l1_approved') return l2 && slip.l1_approved_by !== me.user.id
   return false
+}
+
+/** Pay that hasn't gone out yet, so can still be carried forward (mirrors PayslipApprovals::isUnpaid). */
+export function isUnpaid(slip: Pick<Payslip, 'status' | 'payment_method' | 'cheque_number'>): boolean {
+  return slip.status === 'draft' || slip.status === 'l1_approved' || (slip.status === 'approved' && slip.payment_method === 'cheque' && !slip.cheque_number)
 }

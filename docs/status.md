@@ -61,11 +61,15 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   password change for temporary passwords, password reset by email, login
   history. Also **fixed a latent bug: real bearer tokens never worked
   under RLS** (see `docs/decisions.md`).
-- **Frontend, first slice** (`frontend/`, Vue 3 + TypeScript + Naive UI;
-  see `docs/decisions.md`): sign in, forgot/reset password, forced
-  password change, app shell with a permission-filtered sidebar and
-  light/dark mode, the Setup wizard, Company details, Branches. 6 unit
-  tests on the routing rules; type-check and production build pass.
+- **Frontend** (`frontend/`, Vue 3 + TypeScript + Naive UI; see
+  `docs/decisions.md`): sign in, forgot/reset password, forced password
+  change, app shell with a permission-filtered sidebar, branch switcher and
+  light/dark mode, the Setup wizard, Company details, Branches, HR and
+  Payroll dashboards, Staff (list, profile, add/edit, offboard), Approvals,
+  **My tasks, a checklist page and HR > Checklists** (2026-09-25).
+- **Opsyra Central** (`central/`): landing site, pricing structure (per
+  country, admin-editable), free-trial sign-up, super-admin subscription
+  dashboard, and the nightly-rebuilt live demo company.
 - **159/159 tests passing**, all against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
@@ -73,7 +77,7 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
 ## Not done yet (Phase 3 continues)
 
 **Agreed order (user, 2026-09-25):** 1) login / auth (done), 2) **the
-frontend (next)**, 3) **Opsyra Central** (a new app for the landing site, sign-up,
+frontend (in progress)**, 3) **Opsyra Central** (a new app for the landing site, sign-up,
 billing and super-admin; see `docs/research/subscription-architecture.md`)
 together with the test deployment, before the first paying customer. The
 modules below continue alongside as agreed.
@@ -85,11 +89,10 @@ staff ID card (build new: no source to port), subscription enforcement, US
 payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 (ledger is new-build — see Checkpoint 1 decisions).
 
-**Frontend: no stack chosen yet.** Discussed with the user 2026-09-24 —
-recommendation is a Vue 3 app on the existing Sanctum API (same family as
-SLMS360, one backend path shared with the Flutter app, own design rather
-than Quasar's). The user liked Horilla's demo as a layout reference. Decide
-before building any screens.
+**Next screens:** Payroll (pay runs, payslips with lines, bulk approve,
+cheque numbers, salary queries, staff's own payslips), then the remaining
+Setup wizard screens (departments, roles and approvers, leaving reasons,
+checklist templates, pay components, salaries).
 
 **Test deployment: on hold until the frontend is ready** (user decision,
 2026-09-24). Target is `opsyra.brainstormertech.com` on BrainStormers'

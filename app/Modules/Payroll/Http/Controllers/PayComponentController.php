@@ -42,8 +42,9 @@ class PayComponentController extends Controller
             'name' => ['required', 'string', 'max:255', ValidationRule::unique('pay_components')->where('tenant_id', $tenantId)],
             'code' => ['nullable', 'string', 'max:50', 'regex:/^[A-Z][A-Z0-9_]*$/', ValidationRule::unique('pay_components')->where('tenant_id', $tenantId)],
             'type' => ['required', ValidationRule::in(PayComponent::TYPES)],
-            // % of gross only makes sense once gross is known, i.e. for deductions.
-            'calculation' => ['required', ValidationRule::in($request->type === 'earning' ? ['fixed', 'percent_of_basic'] : PayComponent::CALCULATIONS)],
+            // % of gross only makes sense once gross is known, i.e. for
+            // deductions; paying by the hour only for earnings.
+            'calculation' => ['required', ValidationRule::in($request->type === 'earning' ? ['fixed', 'percent_of_basic', 'per_hour'] : ['fixed', 'percent_of_basic', 'percent_of_gross'])],
             'prorate' => ['nullable', 'boolean'],
             'sequence' => ['nullable', 'integer', 'min:0'],
         ]);

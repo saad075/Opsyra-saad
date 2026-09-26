@@ -3,8 +3,10 @@
 namespace App\Modules\Payroll;
 
 use App\Models\User;
+use App\Modules\Payroll\Contracts\WorkedHoursProvider;
 use App\Modules\Payroll\Models\PayComponent;
 use App\Modules\Payroll\Setup\PayrollSetupSteps;
+use App\Modules\Payroll\Support\NoWorkedHours;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Setup\Contracts\SetupStepProvider;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +25,9 @@ class PayrollServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // A module that records time (Attendance) binds its own.
+        $this->app->bindIf(WorkedHoursProvider::class, NoWorkedHours::class);
+
         $this->app->tag(PayrollSetupSteps::class, SetupStepProvider::TAG);
     }
 

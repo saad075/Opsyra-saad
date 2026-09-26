@@ -13,7 +13,8 @@ class PayComponent extends Model
 
     public const TYPES = ['earning', 'deduction'];
 
-    public const CALCULATIONS = ['fixed', 'percent_of_basic', 'percent_of_gross'];
+    // per_hour: the value is a rate, paid for the period's verified hours (earnings only).
+    public const CALCULATIONS = ['fixed', 'percent_of_basic', 'percent_of_gross', 'per_hour'];
 
     protected $fillable = [
         'name',

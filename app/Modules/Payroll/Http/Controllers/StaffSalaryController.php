@@ -193,12 +193,13 @@ class StaffSalaryController extends Controller
 
         $components = PayComponent::whereIn('id', collect($validated['components'])->pluck('pay_component_id'))->get()->keyBy('id');
 
-        if (! $components->contains('is_basic', true)) {
-            throw ValidationException::withMessages(['components' => 'Every salary needs a basic pay amount.']);
+        // Paid a salary (basic pay), by the hour, or both.
+        if (! $components->contains('is_basic', true) && ! $components->contains('calculation', 'per_hour')) {
+            throw ValidationException::withMessages(['components' => 'Every salary needs a basic pay amount or an hourly rate.']);
         }
 
         foreach ($validated['components'] as $i => $line) {
-            if ($components[$line['pay_component_id']]->calculation !== 'fixed' && $line['value'] > 100) {
+            if (in_array($components[$line['pay_component_id']]->calculation, ['percent_of_basic', 'percent_of_gross'], true) && $line['value'] > 100) {
                 throw ValidationException::withMessages(["components.{$i}.value" => 'A percentage cannot be more than 100.']);
             }
         }

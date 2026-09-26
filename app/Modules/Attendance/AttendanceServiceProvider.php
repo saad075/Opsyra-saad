@@ -7,7 +7,11 @@ use App\Modules\Attendance\Console\CloseOutAttendanceCommand;
 use App\Modules\Attendance\Console\GenerateVisitsCommand;
 use App\Modules\Attendance\Models\AttendanceCorrection;
 use App\Modules\Attendance\Models\WorkSchedule;
+use App\Modules\Attendance\Payroll\AttendanceDeductions;
+use App\Modules\Attendance\Payroll\AttendanceWorkedHours;
 use App\Modules\Attendance\Setup\AttendanceSetupSteps;
+use App\Modules\Payroll\Contracts\PayslipContributor;
+use App\Modules\Payroll\Contracts\WorkedHoursProvider;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Setup\Contracts\SetupStepProvider;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +27,10 @@ class AttendanceServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->tag(AttendanceSetupSteps::class, SetupStepProvider::TAG);
+
+        // The payroll link: hours for hourly pay, and attendance deductions.
+        $this->app->bind(WorkedHoursProvider::class, AttendanceWorkedHours::class);
+        $this->app->tag(AttendanceDeductions::class, PayslipContributor::TAG);
     }
 
     public function boot(): void

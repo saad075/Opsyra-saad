@@ -5,6 +5,7 @@ namespace App\Modules\Payroll\Services;
 use App\Models\User;
 use App\Modules\Hr\Models\StaffOnboardingRequest;
 use App\Modules\Payroll\Contracts\PayslipContributor;
+use App\Modules\Payroll\Contracts\WorkedHoursProvider;
 use App\Modules\Payroll\Exceptions\PayrollException;
 use App\Modules\Payroll\Models\PayRun;
 use App\Modules\Payroll\Models\Payslip;
@@ -28,7 +29,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PayslipGenerator
 {
-    public function __construct(private SalaryCalculator $calculator) {}
+    public function __construct(private SalaryCalculator $calculator, private WorkedHoursProvider $hours) {}
 
     /**
      * Staff to include in a run: employed for at least one day of the
@@ -111,7 +112,12 @@ class PayslipGenerator
             throw new PayrollException('This person was not employed during the period.');
         }
 
-        $calculated = $this->calculator->calculate($salary, $paymentDays / $period->days());
+        // Hourly pay: the period's verified hours (only asked for when the salary pays by the hour).
+        $hours = $salary->components()->whereHas('component', fn ($q) => $q->where('calculation', 'per_hour'))->exists()
+            ? $this->hours->minutesFor($staff, $period->start, $period->end) / 60
+            : null;
+
+        $calculated = $this->calculator->calculate($salary, $paymentDays / $period->days(), $hours);
         $currency = $salary->currency;
         $lines = $calculated['lines'];
 

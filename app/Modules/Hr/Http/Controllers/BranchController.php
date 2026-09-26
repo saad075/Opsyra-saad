@@ -81,6 +81,10 @@ class BranchController extends Controller
             'city' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'timezone' => ['nullable', 'timezone:all'],
+            // Where the branch is, for checking app clock-ins (flagged when far, never refused).
+            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
+            'geofence_radius_m' => ['nullable', 'integer', 'between:25,5000'],
         ]);
     }
 }

@@ -3,11 +3,13 @@
 namespace App\Modules\Attendance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Attendance\Exceptions\AttendanceException;
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\WorkSchedule;
 use App\Modules\Attendance\Models\WorkScheduleAssignment;
 use App\Modules\Attendance\Models\WorkScheduleDay;
+use App\Modules\Attendance\Services\WorkCalendar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule as ValidationRule;
@@ -127,6 +129,32 @@ class WorkScheduleController extends Controller
             ->get();
 
         return response()->json(['status' => true, 'message' => 'Schedule assignments', 'data' => $data]);
+    }
+
+    /**
+     * Everyone current, with the schedule they're on today (their own or
+     * the default) and how their attendance is tracked.
+     */
+    public function people(Request $request, WorkCalendar $calendar)
+    {
+        $this->authorize('manage-attendance');
+
+        $data = User::whereIn('status', ['active', 'pending'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'designation', 'attendance_mode', 'is_remote', 'status'])
+            ->map(function (User $u) use ($calendar) {
+                $today = $calendar->today($u)->toDateString();
+                $assignment = WorkScheduleAssignment::forUserOn($u->id, $today);
+                $schedule = $assignment?->schedule ?? $calendar->scheduleFor($u, $today);
+
+                return $u->only(['id', 'name', 'designation', 'attendance_mode', 'is_remote', 'status']) + [
+                    'schedule' => $schedule?->only(['id', 'name']),
+                    'on_default' => ! $assignment,
+                    'since' => $assignment?->starts_on?->toDateString(),
+                ];
+            });
+
+        return response()->json(['status' => true, 'message' => 'People and schedules', 'data' => $data]);
     }
 
     private function validateSchedule(Request $request, ?WorkSchedule $existing = null): array

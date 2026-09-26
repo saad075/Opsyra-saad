@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
+  AlarmOutline,
   BusinessOutline,
+  CalendarOutline,
   CashOutline,
   CheckboxOutline,
   CheckmarkDoneOutline,
@@ -16,6 +18,7 @@ import {
   HomeOutline,
   LocationOutline,
   MoonOutline,
+  OptionsOutline,
   PeopleOutline,
   PersonOutline,
   RocketOutline,
@@ -23,6 +26,8 @@ import {
   ShieldCheckmarkOutline,
   StatsChartOutline,
   SunnyOutline,
+  TimeOutline,
+  TodayOutline,
   WalletOutline,
 } from '@vicons/ionicons5'
 import { NAvatar, NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu, type MenuOption } from 'naive-ui'
@@ -57,6 +62,7 @@ const menu = computed<MenuOption[]>(() => {
   const items: Item[] = [
     { key: 'dashboard', label: link('dashboard', 'Home'), icon: icon(HomeOutline) },
     { key: 'tasks', label: link('tasks', 'My tasks'), icon: icon(CheckboxOutline) },
+    { key: 'my-attendance', label: link('my-attendance', 'My attendance'), icon: icon(TimeOutline) },
     { key: 'my-payslips', label: link('my-payslips', 'My payslips'), icon: icon(DocumentTextOutline) },
     {
       key: 'hr',
@@ -68,6 +74,16 @@ const menu = computed<MenuOption[]>(() => {
         { key: 'approvals', label: link('approvals', 'Approvals'), icon: icon(CheckmarkDoneOutline), permission: HR_APPROVERS },
         { key: 'checklists', label: link('checklists', 'Checklists'), icon: icon(ListOutline), permission: 'HRMS-StaffManagement' },
         { key: 'branches', label: link('branches', 'Branches'), icon: icon(LocationOutline), permission: 'HRMS-StaffManagement' },
+      ],
+    },
+    {
+      key: 'attendance',
+      label: 'Attendance',
+      icon: icon(AlarmOutline),
+      children: [
+        { key: 'attendance-dashboard', label: link('attendance-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: 'HRMS-AttendanceManagement' },
+        { key: 'attendance-today', label: link('attendance-today', 'Today'), icon: icon(TodayOutline), permission: 'HRMS-AttendanceManagement' },
+        { key: 'attendance-requests', label: link('attendance-requests', 'Requests'), icon: icon(ChatbubblesOutline), permission: 'HRMS-AttendanceManagement' },
       ],
     },
     {
@@ -95,6 +111,9 @@ const menu = computed<MenuOption[]>(() => {
         { key: 'approvers', label: link('approvers', 'Approvers'), icon: icon(ShieldCheckmarkOutline), permission: 'HRMS-StaffPermissionUpdate' },
         { key: 'leaving-reasons', label: link('leaving-reasons', 'Leaving reasons'), icon: icon(ExitOutline), permission: 'HRMS-StaffManagement' },
         { key: 'checklist-templates', label: link('checklist-templates', 'Checklist templates'), icon: icon(ListOutline), permission: 'HRMS-StaffManagement' },
+        { key: 'working-hours', label: link('working-hours', 'Working hours'), icon: icon(TimeOutline), permission: 'HRMS-AttendanceManagement' },
+        { key: 'holidays', label: link('holidays', 'Public holidays'), icon: icon(CalendarOutline), permission: 'HRMS-AttendanceManagement' },
+        { key: 'attendance-rules', label: link('attendance-rules', 'Attendance rules'), icon: icon(OptionsOutline), permission: 'HRMS-AttendanceManagement' },
       ],
     },
   ]
@@ -113,6 +132,7 @@ const activeKey = computed(() => {
   if (name.startsWith('staff-')) return 'staff'
   if (name === 'checklist') return auth.can('HRMS-StaffManagement') ? 'checklists' : 'tasks'
   if (name === 'payroll-run') return 'payroll-runs'
+  if (name === 'attendance-person') return 'attendance-today'
   // A payslip: your own belongs under "My payslips"; anyone else's under Pay runs.
   if (name === 'payslip') return auth.canAny(PAYROLL_VIEWERS) ? 'payroll-runs' : 'my-payslips'
   return name
@@ -122,8 +142,9 @@ const activeKey = computed(() => {
 const openGroups = computed(() => {
   const name = String(route.name)
   if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
+  if (name.startsWith('attendance-')) return ['attendance']
   if (name.startsWith('payroll-') || (name === 'payslip' && auth.canAny(PAYROLL_VIEWERS))) return ['payroll']
-  if (['setup', 'company-settings', 'departments', 'roles', 'approvers', 'leaving-reasons', 'checklist-templates'].includes(name)) return ['settings']
+  if (['setup', 'company-settings', 'departments', 'roles', 'approvers', 'leaving-reasons', 'checklist-templates', 'working-hours', 'holidays', 'attendance-rules'].includes(name)) return ['settings']
   return []
 })
 

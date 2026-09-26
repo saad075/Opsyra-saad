@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Attendance\Http\Controllers\AttendanceCorrectionController;
+use App\Modules\Attendance\Http\Controllers\AttendanceDashboardController;
 use App\Modules\Attendance\Http\Controllers\AttendanceSettingsController;
 use App\Modules\Attendance\Http\Controllers\AttendanceSheetController;
 use App\Modules\Attendance\Http\Controllers\HolidayController;
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->prefix('attendance')->group(function () {
     });
 
     // HR.
+    Route::get('dashboard', AttendanceDashboardController::class);
     Route::get('daily', [AttendanceSheetController::class, 'daily']);
     Route::post('person-month', [AttendanceSheetController::class, 'personMonth']);
     Route::post('mark', [AttendanceSheetController::class, 'mark']);
@@ -42,6 +44,7 @@ Route::middleware('auth:sanctum')->prefix('attendance')->group(function () {
         Route::post('delete', [WorkScheduleController::class, 'destroy']);
         Route::post('assign', [WorkScheduleController::class, 'assign']);
         Route::get('assignments', [WorkScheduleController::class, 'assignments']);
+        Route::get('people', [WorkScheduleController::class, 'people']);
     });
 
     Route::prefix('holidays')->group(function () {

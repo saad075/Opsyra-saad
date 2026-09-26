@@ -9,6 +9,7 @@ import {
   NFormItem,
   NIcon,
   NInput,
+  NInputNumber,
   NModal,
   NSelect,
   NSpace,
@@ -20,6 +21,7 @@ import {
 } from 'naive-ui'
 import { h, onMounted, reactive, ref } from 'vue'
 import { api, errorMessage, fieldErrors } from '@/api/client'
+import { currentPosition } from '@/lib/attendance'
 import type { ApiEnvelope, Branch } from '@/api/types'
 
 const message = useMessage()
@@ -34,7 +36,29 @@ const editing = ref<Branch | null>(null)
 const modalOpen = ref(false)
 const saving = ref(false)
 const errors = ref<Record<string, string>>({})
-const form = reactive({ name: '', address: '', city: '', phone: '', timezone: null as string | null, status: true })
+const form = reactive({
+  name: '',
+  address: '',
+  city: '',
+  phone: '',
+  timezone: null as string | null,
+  status: true,
+  latitude: null as number | null,
+  longitude: null as number | null,
+  geofence_radius_m: 200 as number | null,
+})
+
+// Where the branch is, for checking app clock-ins (far away is flagged, never refused).
+const locating = ref(false)
+async function useMyLocation() {
+  locating.value = true
+  const where = await currentPosition(10000)
+  locating.value = false
+  if (!where) return message.warning('Your browser didn’t share its location. Type the coordinates instead.')
+  form.latitude = Number(where.latitude.toFixed(6))
+  form.longitude = Number(where.longitude.toFixed(6))
+  message.success(`Location set (accurate to about ${where.accuracy_m} m).`)
+}
 
 const timezones = Intl.supportedValuesOf('timeZone').map((tz) => ({ label: tz.replace(/_/g, ' '), value: tz }))
 
@@ -60,6 +84,9 @@ function open(branch: Branch | null) {
     city: branch?.city ?? '',
     phone: branch?.phone ?? '',
     timezone: branch?.timezone ?? null,
+    latitude: branch?.latitude ?? null,
+    longitude: branch?.longitude ?? null,
+    geofence_radius_m: branch?.geofence_radius_m ?? 200,
     status: branch?.status ?? true,
   })
   modalOpen.value = true
@@ -164,6 +191,14 @@ onMounted(load)
         <NFormItem label="Phone"><NInput v-model:value="form.phone" /></NFormItem>
         <NFormItem label="Timezone" feedback="Leave empty to use the company's timezone.">
           <NSelect v-model:value="form.timezone" :options="timezones" filterable clearable />
+        </NFormItem>
+        <NFormItem label="Location (for app clock-ins)" feedback="Clock-ins further away than the radius are flagged for HR — never refused. Leave empty to skip the check.">
+          <NSpace align="center">
+            <NInputNumber v-model:value="form.latitude" :precision="6" :show-button="false" placeholder="Latitude" style="width: 130px" />
+            <NInputNumber v-model:value="form.longitude" :precision="6" :show-button="false" placeholder="Longitude" style="width: 130px" />
+            <NInputNumber v-model:value="form.geofence_radius_m" :min="25" :max="5000" :show-button="false" style="width: 110px"><template #suffix>m</template></NInputNumber>
+            <NButton size="small" :loading="locating" @click="useMyLocation">Use where I am now</NButton>
+          </NSpace>
         </NFormItem>
         <NFormItem v-if="editing" label="Active"><NSwitch v-model:value="form.status" /></NFormItem>
         <div class="actions">

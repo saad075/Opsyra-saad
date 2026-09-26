@@ -70,6 +70,7 @@ class MyAttendanceController extends Controller
             'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
             'accuracy_m' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'device' => ['nullable', 'string', 'max:255'],
+            'source' => ['nullable', 'in:app,web'], // the staff app, or Opsyra in a browser
         ]);
 
         $punch = $clock->clock($user, $validated + ['source' => 'app']);

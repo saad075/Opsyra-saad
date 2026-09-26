@@ -90,6 +90,12 @@ class AttendanceEditingTest extends AttendanceTestCase
         $this->assertNull($assignments[1]->ends_on);
         $this->assertSame($b->id, $this->inTenantA(fn () => WorkScheduleAssignment::forUserOn($this->employee->id, '2026-03-05'))->work_schedule_id);
         $this->assertSame($a->id, $this->inTenantA(fn () => WorkScheduleAssignment::forUserOn($this->employee->id, '2026-02-15'))->work_schedule_id);
+
+        $this->travelTo('2026-03-05 12:00');
+        $people = collect($this->actingAs($this->hr, 'sanctum')->getJson('/api/attendance/schedules/people')->assertOk()->json('data'))->keyBy('id');
+        $this->assertSame('Late', $people[$this->employee->id]['schedule']['name']);
+        $this->assertFalse($people[$this->employee->id]['on_default']);
+        $this->assertTrue($people[$this->manager->id]['on_default'], 'Everyone else follows the default week.');
     }
 
     public function test_the_rules_are_validated_and_saved(): void
@@ -104,6 +110,25 @@ class AttendanceEditingTest extends AttendanceTestCase
         $this->clockAt('2026-03-02 09:00');
         $this->clockAt('2026-03-02 12:00');
         $this->assertSame('present', $this->day('2026-03-02')->status);
+    }
+
+    public function test_the_dashboard_shows_the_fortnight_and_what_is_waiting(): void
+    {
+        $this->clockAt('2026-03-02 09:30');
+        $this->clockAt('2026-03-02 17:00');
+        $this->closeOut('2026-03-04 01:00');
+        $this->actingAs($this->employee, 'sanctum')->postJson('/api/attendance/corrections/create', ['date' => '2026-03-03', 'requested_status' => 'remote', 'reason' => 'WFH']);
+
+        $data = $this->actingAs($this->hr, 'sanctum')->getJson('/api/attendance/dashboard')->assertOk()->json('data');
+
+        $this->assertCount(14, $data['trend']);
+        $monday = collect($data['trend'])->firstWhere('date', '2026-03-02');
+        $this->assertSame(1, $monday['late']);
+        $this->assertSame(1, $monday['present']);
+        $this->assertSame(1, $data['waiting']['corrections']);
+        $this->assertSame('Erin Employee', $data['month']['most_late'][0]['name']);
+
+        $this->actingAs($this->employee, 'sanctum')->getJson('/api/attendance/dashboard')->assertForbidden();
     }
 
     public function test_hr_screens_need_the_attendance_permission(): void

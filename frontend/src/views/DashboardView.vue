@@ -3,6 +3,7 @@ import { NButton, NCard, NProgress } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '@/api/client'
 import type { ApiEnvelope, ChecklistTask } from '@/api/types'
+import ClockCard from '@/components/ClockCard.vue'
 import { isOverdue } from '@/lib/tasks'
 import { useAuthStore } from '@/stores/auth'
 import { useSetupStore } from '@/stores/setup'
@@ -34,6 +35,8 @@ onMounted(() => {
     <div class="page-header">
       <h1>Welcome, {{ auth.me?.user.name.split(' ')[0] }}</h1>
     </div>
+
+    <ClockCard class="clock" />
 
     <!-- Setup banner for admins until setup is complete (Horilla-style). -->
     <NCard v-if="canSetup && setup.status && !setup.status.is_complete" class="setup-banner">
@@ -76,6 +79,10 @@ onMounted(() => {
 <style scoped>
 .setup-banner {
   border-left: 4px solid #0e6e62;
+}
+
+.clock {
+  margin-bottom: 16px;
 }
 
 .tasks-card {

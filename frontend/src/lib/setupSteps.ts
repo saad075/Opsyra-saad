@@ -16,4 +16,7 @@ export const setupStepRoutes: Record<string, string | null> = {
   pay_components: 'payroll-components',
   salaries: 'payroll-salaries',
   bank_accounts: 'payroll-salaries',
+  work_schedules: 'working-hours',
+  holidays: 'holidays',
+  attendance_rules: 'attendance-rules',
 }

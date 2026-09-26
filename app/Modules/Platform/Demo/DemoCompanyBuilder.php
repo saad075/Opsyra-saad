@@ -501,14 +501,14 @@ class DemoCompanyBuilder
         $hr = $this->people['hr'];
         $onLeave = [$this->today->subDays(9)->toDateString(), $this->today->subDays(8)->toDateString()];
 
-        foreach ($this->people as $key => $person) {
-            if ($person->status !== 'active' || $person->is_remote) {
-                continue;
-            }
+        // Everyone active — including people hired through the onboarding flow above.
+        foreach (User::where('status', 'active')->orderBy('id')->get() as $person) {
+            $key = array_search($person->id, array_map(fn (User $u) => $u->id, $this->people), true) ?: $person->email;
 
             $branch = $this->branches[$this->branchOf($person)];
 
-            for ($date = $this->today->subDays(21); $date->lt($this->today); $date = $date->addDay()) {
+            // Remote staff don't clock; the close-out below records them as remote.
+            for ($date = $this->today->subDays(21); ! $person->is_remote && $date->lt($this->today); $date = $date->addDay()) {
                 $day = $date->toDateString();
 
                 if ($date->isWeekend() || isset($holidays[$day]) || ($person->joined_at && $person->joined_at->toDateString() > $day)) {
@@ -527,8 +527,9 @@ class DemoCompanyBuilder
                     continue; // absent
                 }
 
-                $in = $r < 15 ? 9 * 60 + 12 + $r : 8 * 60 + 40 + $r % 18;           // late, or on time
-                $out = $r >= 15 && $r < 20 ? 15 * 60 + 30 : 17 * 60 + 2 + $r % 35;   // left early, or a full day
+                $late = $r >= 5 && $r < 11;                                          // about 1 day in 16
+                $in = $late ? 9 * 60 + 12 + $r * 2 : 8 * 60 + 40 + $r % 18;
+                $out = $r >= 15 && $r < 19 ? 15 * 60 + 30 : 17 * 60 + 2 + $r % 35;   // left early, or a full day
 
                 // 3–4: forgot to clock out; 96+: clocked in away from the office.
                 $this->demoDay($person, $branch, $day, $in, $r < 5 ? null : $out, far: $r >= 96);

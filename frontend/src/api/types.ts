@@ -55,6 +55,9 @@ export interface Branch {
   city: string | null
   phone: string | null
   timezone: string | null
+  latitude?: number | null
+  longitude?: number | null
+  geofence_radius_m?: number | null
   staff_count: number
 }
 

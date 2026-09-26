@@ -210,3 +210,80 @@ export interface Checklist {
   closed_tasks_count?: number
   overdue_tasks_count?: number
 }
+
+export type PayslipStatus = 'draft' | 'l1_approved' | 'approved' | 'carried_forward'
+
+export interface PayRun {
+  id: number
+  frequency: 'monthly' | 'biweekly'
+  period_start: string
+  period_end: string
+  pay_date: string | null
+  status: 'processing' | 'completed'
+  payslips_count: number
+  errors: { user_id: number | null; message: string }[] | null
+  created_by: Named | null
+  completed_at: string | null
+  draft_count: number
+  l1_approved_count: number
+  approved_count: number
+  carried_forward_count: number
+}
+
+export interface PayRunDetail extends PayRun {
+  totals: { currency: string; payslips: number; gross: number; deductions: number; net: number }[]
+  failures: { user_id: number | null; message: string; name: string | null }[]
+}
+
+export interface PayslipLine {
+  id: number
+  source: string
+  code: string | null
+  label: string
+  type: 'earning' | 'deduction'
+  amount: number
+  sequence: number
+}
+
+export interface SalaryClaim {
+  id: number
+  payslip_id: number
+  user_id: number
+  reason: string
+  status: 'open' | 'approved' | 'rejected'
+  response: string | null
+  salary_adjustment_id: number | null
+  resolved_at: string | null
+  created_at: string
+  staff?: Named
+  resolved_by?: Named | null
+  payslip?: Pick<Payslip, 'id' | 'period_start' | 'period_end' | 'net_pay' | 'currency'>
+}
+
+export interface Payslip {
+  id: number
+  pay_run_id: number
+  user_id: number
+  period_start: string
+  period_end: string
+  currency: string
+  period_days: number
+  payment_days: number
+  gross_earnings: number
+  total_deductions: number
+  net_pay: number
+  status: PayslipStatus
+  payment_method: 'transfer' | 'cheque' | null
+  cheque_number: string | null
+  l1_approved_by: number | null
+  l1_approved_at: string | null
+  approved_by: number | null
+  approved_at: string | null
+  generated_at: string
+  staff?: PersonRef
+  lines?: PayslipLine[]
+  claims?: SalaryClaim[]
+  pay_run?: Pick<PayRun, 'id' | 'frequency' | 'pay_date'>
+  l1_approver?: Named | null
+  approver?: Named | null
+}

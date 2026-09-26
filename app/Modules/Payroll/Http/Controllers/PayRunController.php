@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Payroll\Jobs\GeneratePayslips;
 use App\Modules\Payroll\Models\PayRun;
 use App\Modules\Payroll\Models\StaffSalary;
@@ -26,12 +27,51 @@ class PayRunController extends Controller
         $this->authorize('view-payroll');
 
         $data = PayRun::with('createdBy:id,name')
+            ->withCount(self::statusCounts())
             ->when($request->filled('frequency'), fn ($q) => $q->where('frequency', $request->frequency))
             ->orderByDesc('period_start')
             ->limit(100)
             ->get();
 
         return response()->json(['status' => true, 'message' => 'Pay runs', 'data' => $data]);
+    }
+
+    public function show(Request $request)
+    {
+        $this->authorize('view-payroll');
+
+        $validated = $request->validate([
+            'id' => ['required', 'integer', ValidationRule::exists('pay_runs', 'id')->where('tenant_id', $request->user()->tenant_id)],
+        ]);
+
+        $run = PayRun::with('createdBy:id,name')->withCount(self::statusCounts())->findOrFail($validated['id']);
+
+        // Totals per currency — two currencies are never added together.
+        $totals = $run->payslips()
+            ->toBase()
+            ->selectRaw('currency, count(*) as payslips, sum(gross_earnings) as gross, sum(total_deductions) as deductions, sum(net_pay) as net')
+            ->groupBy('currency')
+            ->get()
+            ->map(fn ($row) => [
+                'currency' => $row->currency,
+                'payslips' => (int) $row->payslips,
+                'gross' => (float) $row->gross,
+                'deductions' => (float) $row->deductions,
+                'net' => (float) $row->net,
+            ]);
+
+        // Name the people whose payslip couldn't be generated.
+        $errors = collect($run->errors ?? []);
+        $names = User::whereIn('id', $errors->pluck('user_id')->filter())->pluck('name', 'id');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Pay run',
+            'data' => $run->toArray() + [
+                'totals' => $totals,
+                'failures' => $errors->map(fn ($e) => $e + ['name' => $names[$e['user_id'] ?? 0] ?? null])->values(),
+            ],
+        ]);
     }
 
     public function store(Request $request)
@@ -98,5 +138,17 @@ class PayRunController extends Controller
             'message' => 'Generating any missing payslips for this run.',
             'data' => PayRun::findOrFail($validated['pay_run_id']),
         ]);
+    }
+
+    /** Payslips per approval stage, so a list shows where each run has got to. */
+    private static function statusCounts(): array
+    {
+        $counts = [];
+
+        foreach (['draft', 'l1_approved', 'approved', 'carried_forward'] as $status) {
+            $counts["payslips as {$status}_count"] = fn ($q) => $q->where('status', $status);
+        }
+
+        return $counts;
     }
 }

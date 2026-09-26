@@ -6,7 +6,10 @@ import type { ApiEnvelope, PayrollDashboard } from '@/api/types'
 import OChart from '@/components/charts/OChart.vue'
 import StatCard from '@/components/StatCard.vue'
 import { formatMoney } from '@/lib/money'
+import { PAYROLL_MANAGERS } from '@/lib/payroll'
+import { useAuthStore } from '@/stores/auth'
 
+const auth = useAuthStore()
 const data = ref<PayrollDashboard | null>(null)
 const error = ref('')
 
@@ -55,16 +58,16 @@ onMounted(async () => {
     <template v-else>
       <NGrid :cols="4" :x-gap="16" :y-gap="16" item-responsive responsive="screen">
         <NGridItem span="4 s:2 l:1">
-          <StatCard label="Waiting for you" :value="data.awaiting.for_me" hint="Payslips you can approve now" :tone="data.awaiting.for_me ? 'warning' : 'default'" />
+          <StatCard label="Waiting for you" :value="data.awaiting.for_me" hint="Payslips you can approve now" :tone="data.awaiting.for_me ? 'warning' : 'default'" :to="{ name: 'payroll-runs' }" />
         </NGridItem>
         <NGridItem span="4 s:2 l:1">
-          <StatCard label="Drafts" :value="data.awaiting.drafts" :hint="`${data.awaiting.level_2} awaiting level 2`" />
+          <StatCard label="Drafts" :value="data.awaiting.drafts" :hint="`${data.awaiting.level_2} awaiting level 2`" :to="{ name: 'payroll-runs' }" />
         </NGridItem>
         <NGridItem span="4 s:2 l:1">
-          <StatCard label="Cheques to number" :value="data.awaiting.cheques" :tone="data.awaiting.cheques ? 'warning' : 'default'" />
+          <StatCard label="Cheques to number" :value="data.awaiting.cheques" :tone="data.awaiting.cheques ? 'warning' : 'default'" :to="{ name: 'payroll-cheques' }" />
         </NGridItem>
         <NGridItem span="4 s:2 l:1">
-          <StatCard label="Open salary queries" :value="data.awaiting.claims" :tone="data.awaiting.claims ? 'warning' : 'default'" />
+          <StatCard label="Open salary queries" :value="data.awaiting.claims" :tone="data.awaiting.claims ? 'warning' : 'default'" :to="auth.can(PAYROLL_MANAGERS) ? { name: 'payroll-queries' } : undefined" />
         </NGridItem>
       </NGrid>
 

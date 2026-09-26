@@ -51,3 +51,18 @@ h2 {
 .muted {
   opacity: 0.7;
 }
+
+/* Printing (a payslip): just the page content, no app chrome. */
+@media print {
+  .n-layout-sider,
+  .n-layout-header,
+  .demo-banner,
+  .no-print {
+    display: none !important;
+  }
+
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+}

@@ -50,11 +50,14 @@ class PayslipController extends Controller
             $this->authorize('view-payroll');
         }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Payslip',
-            'data' => $payslip->load(['staff:id,name,designation', 'lines', 'claims', 'payRun:id,frequency,pay_date']),
-        ]);
+        $data = $payslip->load(['staff:id,name,designation', 'lines', 'claims', 'payRun:id,frequency,pay_date'])->toArray();
+
+        // Under their own keys: the relations would serialise over the
+        // l1_approved_by / approved_by id columns.
+        $data['l1_approver'] = $payslip->l1ApprovedBy?->only(['id', 'name']);
+        $data['approver'] = $payslip->approvedBy?->only(['id', 'name']);
+
+        return response()->json(['status' => true, 'message' => 'Payslip', 'data' => $data]);
     }
 
     public function mine(Request $request)

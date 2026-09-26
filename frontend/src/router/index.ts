@@ -33,6 +33,13 @@ export const routes: RouteRecordRaw[] = [
       { path: 'settings/company', name: 'company-settings', component: () => import('@/views/settings/CompanySettingsView.vue'), meta: { title: 'Company details', permission: 'HRMS-CompanySettings' } },
       { path: 'hr/dashboard', name: 'hr-dashboard', component: () => import('@/views/hr/HrDashboardView.vue'), meta: { title: 'HR dashboard', permission: 'HRMS-StaffManagement' } },
       { path: 'payroll/dashboard', name: 'payroll-dashboard', component: () => import('@/views/payroll/PayrollDashboardView.vue'), meta: { title: 'Payroll dashboard', permission: PAYROLL_VIEWERS } },
+      { path: 'payroll/runs', name: 'payroll-runs', component: () => import('@/views/payroll/PayRunsView.vue'), meta: { title: 'Pay runs', permission: PAYROLL_VIEWERS } },
+      { path: 'payroll/runs/:id(\\d+)', name: 'payroll-run', component: () => import('@/views/payroll/PayRunView.vue'), meta: { title: 'Pay run', permission: PAYROLL_VIEWERS } },
+      { path: 'payroll/cheques', name: 'payroll-cheques', component: () => import('@/views/payroll/ChequesView.vue'), meta: { title: 'Cheques', permission: PAYROLL_VIEWERS } },
+      { path: 'payroll/queries', name: 'payroll-queries', component: () => import('@/views/payroll/SalaryQueriesView.vue'), meta: { title: 'Salary queries', permission: 'HRMS-SalaryManagement' } },
+      // No route permission: staff open their own approved payslips; the API decides.
+      { path: 'payroll/payslips/:id(\\d+)', name: 'payslip', component: () => import('@/views/payroll/PayslipView.vue'), meta: { title: 'Payslip' } },
+      { path: 'my/payslips', name: 'my-payslips', component: () => import('@/views/payroll/MyPayslipsView.vue'), meta: { title: 'My payslips' } },
       { path: 'hr/staff', name: 'staff', component: () => import('@/views/hr/StaffListView.vue'), meta: { title: 'Staff', permission: 'HRMS-StaffManagement' } },
       { path: 'hr/staff/new', name: 'staff-new', component: () => import('@/views/hr/StaffFormView.vue'), meta: { title: 'Add staff', permission: 'HRMS-StaffManagement' } },
       // No route permission: people may open their own profile; the API decides who sees whom.

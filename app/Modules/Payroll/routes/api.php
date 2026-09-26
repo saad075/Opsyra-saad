@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->prefix('payroll')->group(function () {
 
     Route::prefix('pay-runs')->group(function () {
         Route::get('list', [PayRunController::class, 'index']);
+        Route::post('show', [PayRunController::class, 'show']);
         Route::post('create', [PayRunController::class, 'store']);
         Route::post('generate', [PayRunController::class, 'generate']);
     });

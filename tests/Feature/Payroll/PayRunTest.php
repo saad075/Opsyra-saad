@@ -222,7 +222,12 @@ class PayRunTest extends PayrollTestCase
 
         $this->actingAs($this->approverL2, 'sanctum')->postJson('/api/payroll/payslips/approve', ['ids' => [$id]])->assertOk();
 
-        $this->actingAs($this->employee, 'sanctum')->postJson('/api/payroll/payslips/show', ['id' => $id])->assertOk()->assertJsonCount(3, 'data.lines');
+        $this->actingAs($this->employee, 'sanctum')->postJson('/api/payroll/payslips/show', ['id' => $id])
+            ->assertOk()
+            ->assertJsonCount(3, 'data.lines')
+            ->assertJsonPath('data.approved_by', $this->approverL2->id)
+            ->assertJsonPath('data.approver.name', $this->approverL2->name)
+            ->assertJsonPath('data.l1_approver', null);
 
         $colleague = $this->inTenantA(fn () => $this->makeStaff());
         $this->actingAs($colleague, 'sanctum')->postJson('/api/payroll/payslips/show', ['id' => $id])->assertForbidden();
@@ -252,6 +257,32 @@ class PayRunTest extends PayrollTestCase
 
         $this->startRun('monthly', '2026-04-01');
         $this->assertEquals(1350 + 75, $this->payslipFor($this->employee->id)->net_pay);
+    }
+
+    public function test_a_run_shows_its_approval_stages_and_totals(): void
+    {
+        $second = $this->inTenantA(fn () => $this->makeStaff(['joined_at' => '2026-01-01']));
+        $this->giveStandardSalary($this->employee);
+        $this->giveStandardSalary($second);
+        $runId = $this->startRun();
+
+        $this->actingAs($this->approverL1, 'sanctum')
+            ->postJson('/api/payroll/payslips/approve', ['ids' => [$this->payslipFor($this->employee->id)->id]])
+            ->assertOk();
+
+        $this->actingAs($this->payrollOfficer, 'sanctum')->getJson('/api/payroll/pay-runs/list')
+            ->assertOk()
+            ->assertJsonPath('data.0.draft_count', 1)
+            ->assertJsonPath('data.0.l1_approved_count', 1);
+
+        $this->actingAs($this->approverL1, 'sanctum')->postJson('/api/payroll/pay-runs/show', ['id' => $runId])
+            ->assertOk()
+            ->assertJsonPath('data.approved_count', 0)
+            ->assertJsonPath('data.totals.0.payslips', 2)
+            ->assertJsonPath('data.totals.0.net', 2700)
+            ->assertJsonPath('data.failures', []);
+
+        $this->actingAs($this->employee, 'sanctum')->postJson('/api/payroll/pay-runs/show', ['id' => $runId])->assertForbidden();
     }
 
     public function test_another_tenant_cannot_approve_or_read_these_payslips(): void

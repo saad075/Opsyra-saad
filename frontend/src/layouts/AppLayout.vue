@@ -3,6 +3,10 @@ import {
   BusinessOutline,
   CheckboxOutline,
   CheckmarkDoneOutline,
+  ChatbubblesOutline,
+  DocumentTextOutline,
+  PlayCircleOutline,
+  ReceiptOutline,
   ListOutline,
   HomeOutline,
   LocationOutline,
@@ -47,6 +51,7 @@ const menu = computed<MenuOption[]>(() => {
   const items: Item[] = [
     { key: 'dashboard', label: link('dashboard', 'Home'), icon: icon(HomeOutline) },
     { key: 'tasks', label: link('tasks', 'My tasks'), icon: icon(CheckboxOutline) },
+    { key: 'my-payslips', label: link('my-payslips', 'My payslips'), icon: icon(DocumentTextOutline) },
     {
       key: 'hr',
       label: 'HR',
@@ -63,7 +68,12 @@ const menu = computed<MenuOption[]>(() => {
       key: 'payroll',
       label: 'Payroll',
       icon: icon(WalletOutline),
-      children: [{ key: 'payroll-dashboard', label: link('payroll-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: PAYROLL_VIEWERS }],
+      children: [
+        { key: 'payroll-dashboard', label: link('payroll-dashboard', 'Dashboard'), icon: icon(StatsChartOutline), permission: PAYROLL_VIEWERS },
+        { key: 'payroll-runs', label: link('payroll-runs', 'Pay runs'), icon: icon(PlayCircleOutline), permission: PAYROLL_VIEWERS },
+        { key: 'payroll-cheques', label: link('payroll-cheques', 'Cheques'), icon: icon(ReceiptOutline), permission: PAYROLL_VIEWERS },
+        { key: 'payroll-queries', label: link('payroll-queries', 'Salary queries'), icon: icon(ChatbubblesOutline), permission: 'HRMS-SalaryManagement' },
+      ],
     },
     {
       key: 'settings',
@@ -89,6 +99,9 @@ const activeKey = computed(() => {
   const name = String(route.name)
   if (name.startsWith('staff-')) return 'staff'
   if (name === 'checklist') return auth.can('HRMS-StaffManagement') ? 'checklists' : 'tasks'
+  if (name === 'payroll-run') return 'payroll-runs'
+  // A payslip: your own belongs under "My payslips"; anyone else's under Pay runs.
+  if (name === 'payslip') return auth.canAny(PAYROLL_VIEWERS) ? 'payroll-runs' : 'my-payslips'
   return name
 })
 
@@ -96,7 +109,7 @@ const activeKey = computed(() => {
 const openGroups = computed(() => {
   const name = String(route.name)
   if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
-  if (name.startsWith('payroll-')) return ['payroll']
+  if (name.startsWith('payroll-') || (name === 'payslip' && auth.canAny(PAYROLL_VIEWERS))) return ['payroll']
   if (name === 'setup' || name === 'company-settings') return ['settings']
   return []
 })

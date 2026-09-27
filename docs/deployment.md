@@ -172,7 +172,7 @@ Pull or Deploy → Update from Remote* and *Deploy HEAD Commit*.
    Deploy* (last deployment), or `~/.cpanel/logs/` in Terminal.
 3. One-off commands in cPanel → *Terminal*:
    ```bash
-   cd ~/opsyra/central/current && php artisan central:admin   # the super admin login (prints a password — store it safely)
+   cd ~/opsyra/central/current && php artisan central:admin you@example.com --name="Your Name"   # the super admin login (prints a password — store it safely; run again to reset it)
    cd ~/opsyra/us/current && php artisan demo:reset           # the public demo company (then rebuilt nightly)
    ```
 4. Check:

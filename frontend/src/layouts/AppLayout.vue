@@ -14,10 +14,12 @@ import {
   LayersOutline,
   PlayCircleOutline,
   ReceiptOutline,
+  RepeatOutline,
   ListOutline,
   HomeOutline,
   LocationOutline,
   MoonOutline,
+  NavigateOutline,
   OptionsOutline,
   PeopleOutline,
   PersonOutline,
@@ -87,6 +89,17 @@ const menu = computed<MenuOption[]>(() => {
       ],
     },
     {
+      key: 'visits',
+      label: 'Visits',
+      icon: icon(NavigateOutline),
+      children: [
+        { key: 'visits-board', label: link('visits-board', 'Today’s visits'), icon: icon(TodayOutline), permission: 'HRMS-VisitPlanning' },
+        { key: 'visits-review', label: link('visits-review', 'To review'), icon: icon(CheckmarkDoneOutline), permission: 'HRMS-VisitPlanning' },
+        { key: 'visits-clients', label: link('visits-clients', 'Clients'), icon: icon(HomeOutline), permission: 'HRMS-VisitPlanning' },
+        { key: 'visits-plans', label: link('visits-plans', 'Visit plans'), icon: icon(RepeatOutline), permission: 'HRMS-VisitPlanning' },
+      ],
+    },
+    {
       key: 'payroll',
       label: 'Payroll',
       icon: icon(WalletOutline),
@@ -143,6 +156,7 @@ const openGroups = computed(() => {
   const name = String(route.name)
   if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
   if (name.startsWith('attendance-')) return ['attendance']
+  if (name.startsWith('visits-')) return ['visits']
   if (name.startsWith('payroll-') || (name === 'payslip' && auth.canAny(PAYROLL_VIEWERS))) return ['payroll']
   if (['setup', 'company-settings', 'departments', 'roles', 'approvers', 'leaving-reasons', 'checklist-templates', 'working-hours', 'holidays', 'attendance-rules'].includes(name)) return ['settings']
   return []

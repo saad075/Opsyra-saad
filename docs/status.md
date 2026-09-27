@@ -73,6 +73,19 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
   components, salaries (live preview) and bank details (2026-09-26).
   Payroll rules added 2026-09-26 (user): nobody approves their own
   payslip; carry forward only takes pay that hasn't gone out.
+- **Attendance module** (new `app/Modules/Attendance`, 2026-09-26; see
+  `docs/research/attendance.md` and `docs/decisions.md`): weekly working
+  hours and holidays; clocking from the staff app or the browser, with the
+  location checked against the branch (flagged, never refused); an hourly
+  close-out that settles each day; HR marking and staff correction
+  requests; **client visits for home care** (Kindstead) with GPS check-in
+  per visit, visit plans and a coordinator review queue; the payroll link
+  (hourly pay from verified time; optional attendance deductions); an
+  Attendance dashboard and screens for all of it. The demo has three weeks
+  of attendance and a three-caregiver home-care team paid by the hour.
+  The **app API** (for the coming staff app) mirrors SLMS360's:
+  `attendance/today|clock|month|my-schedule`, `attendance/corrections/*`,
+  `visits/my-day|check-in|check-out|my-month`.
 - **Opsyra Central** (`central/`): landing site, pricing structure (per
   country, admin-editable), free-trial sign-up, super-admin subscription
   dashboard, and the nightly-rebuilt live demo company.
@@ -95,8 +108,9 @@ staff ID card (build new: no source to port), subscription enforcement, US
 payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 (ledger is new-build — see Checkpoint 1 decisions).
 
-**Next:** the user's choice between the test deployment (on hold until
-the screens were ready — they now are) and the Attendance module.
+**Next:** the Leave module (types, yearly allowances, requests, approvals —
+it takes over the "on leave (paid/unpaid)" marking HR does by hand now),
+or the test deployment (on hold until the screens were ready — they are).
 
 **Test deployment: on hold until the frontend is ready** (user decision,
 2026-09-24). Target is `opsyra.brainstormertech.com` on BrainStormers'

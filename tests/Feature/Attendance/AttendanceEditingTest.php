@@ -4,6 +4,7 @@ namespace Tests\Feature\Attendance;
 
 use App\Modules\Attendance\Models\WorkSchedule;
 use App\Modules\Attendance\Models\WorkScheduleAssignment;
+use App\Modules\Setup\Models\TenantSetting;
 
 class AttendanceEditingTest extends AttendanceTestCase
 {
@@ -47,6 +48,18 @@ class AttendanceEditingTest extends AttendanceTestCase
         $this->assertSame(480, $day->worked_minutes);
         $this->assertCount(3, $day->punches, 'Two corrected punches plus the voided original.');
         $this->assertNotNull($day->punches->firstWhere('source', 'app')->voided_at);
+    }
+
+    public function test_times_hr_sets_are_the_persons_local_times(): void
+    {
+        $this->inTenantA(fn () => TenantSetting::set('timezone', 'Asia/Karachi')); // UTC+5
+        $this->travelTo('2026-03-03 12:00');
+
+        $this->actingAs($this->hr, 'sanctum')->postJson('/api/attendance/mark', [
+            'user_id' => $this->employee->id, 'date' => '2026-03-02', 'action' => 'times', 'in' => '09:00', 'out' => '17:00',
+        ])->assertOk()->assertJsonPath('data.first_in_at', '2026-03-02T09:00:00+05:00')->assertJsonPath('data.is_late', false);
+
+        $this->assertSame('2026-03-02 04:00', $this->day('2026-03-02')->first_in_at->utc()->format('Y-m-d H:i'), '09:00 in Karachi is 04:00 UTC.');
     }
 
     public function test_the_future_is_off_limits_except_for_leave(): void

@@ -2,6 +2,36 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-26 — Attendance stages B–D: visits, payroll link, screens
+
+- **Visits (home care)** are part of the Attendance module: visit locations
+  (a client's name, address and map point — deliberately nothing about their
+  care), repeating visit plans that generate dated visits two weeks ahead,
+  GPS check-in/out per visit (far or no location → flagged, never refused),
+  a coordinator review queue. Only verified or accepted visit time counts.
+- **Hourly pay** is a pay component type (`per_hour`): its value is a rate,
+  paid for the period's hours from a `WorkedHoursProvider` (Payroll's
+  contract; Attendance answers). A salary needs basic pay, an hourly rate,
+  or both. Attendance deductions for salaried staff are a
+  `PayslipContributor`, off until the company switches them on.
+- **Maps: Leaflet (BSD-2-Clause, checked in its LICENSE file) with
+  OpenStreetMap's public tiles** by default, configurable through
+  `VITE_MAP_TILE_URL`. OSM's public tile servers are for light use; a busy
+  production deployment should point this at a commercial or self-hosted
+  tile provider.
+- **No address look-up (geocoding).** Turning an address into coordinates
+  would send clients' home addresses to a third party. Coordinators place
+  the point by clicking the map, typing coordinates, or "use where I am
+  now" at the door. Revisit if a customer wants look-up (with a provider
+  under a data-processing agreement).
+- **Times set from a local clock are stored through `App\Casts\UtcDateTime`**
+  on every `timestamptz` column. Eloquent's `datetime` cast writes the clock
+  time without its zone, so 08:00 in Chicago was stored as 08:00 UTC (found
+  on the demo; the tests ran in UTC). The cast writes UTC with an explicit
+  offset and reads back immutable Carbons — a mutable one was changed by
+  `->addHour()` and re-saved through Eloquent's cast cache. Query bindings
+  are not converted, so queries compare against `->utc()` moments.
+
 ## 2026-09-26 — Attendance module, stage A (new `Attendance` module)
 
 User decisions (see `docs/research/attendance.md`):

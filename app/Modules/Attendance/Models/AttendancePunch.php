@@ -2,6 +2,7 @@
 
 namespace App\Modules\Attendance\Models;
 
+use App\Casts\UtcDateTime;
 use App\Modules\Hr\Models\Branch;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
@@ -19,13 +20,13 @@ class AttendancePunch extends Model
     protected function casts(): array
     {
         return [
-            'punched_at' => 'datetime',
+            'punched_at' => UtcDateTime::class,
             'latitude' => 'float',
             'longitude' => 'float',
             'accuracy_m' => 'integer',
             'distance_m' => 'integer',
             'within_range' => 'boolean',
-            'voided_at' => 'datetime',
+            'voided_at' => UtcDateTime::class,
         ];
     }
 

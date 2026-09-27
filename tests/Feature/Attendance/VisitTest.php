@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Attendance\Models\Visit;
 use App\Modules\Attendance\Models\VisitLocation;
 use App\Modules\Attendance\Models\VisitPlan;
+use App\Modules\Setup\Models\TenantSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Testing\TestResponse;
 
@@ -137,6 +138,7 @@ class VisitTest extends AttendanceTestCase
         $this->closeOut('2026-03-03 01:00');
 
         $this->assertSame('missed', $this->visit($missed->id)->status);
+        $this->assertSame('15:00', $this->visit($missed->id)->planned_end->format('H:i'), 'Settling never moves a visit.');
         $day = $this->day('2026-03-02', $this->carer);
         $this->assertSame('present', $day->status);
         $this->assertSame('visits', $day->expected);
@@ -229,6 +231,36 @@ class VisitTest extends AttendanceTestCase
         $this->actingAs($this->coordinator, 'sanctum')->postJson('/api/visits/plans/delete', ['id' => $planId])->assertOk();
         $this->assertSame(0, $this->inTenantA(fn () => Visit::where('visit_plan_id', $planId)->count()));
         $this->assertNotNull($this->inTenantA(fn () => VisitPlan::find($planId))->ends_on);
+    }
+
+    public function test_planned_times_are_the_caregivers_local_times(): void
+    {
+        $this->inTenantA(fn () => TenantSetting::set('timezone', 'America/Chicago')); // UTC−6 in March
+        $this->travelTo('2026-03-02 12:00'); // 06:00 in Chicago
+
+        $this->actingAs($this->coordinator, 'sanctum')->postJson('/api/visits/plans/create', [
+            'visit_location_id' => $this->patel->id, 'user_id' => $this->carer->id, 'weekdays' => [1], 'start_time' => '08:00', 'end_time' => '09:00', 'starts_on' => '2026-03-02',
+        ])->assertCreated();
+
+        $visit = $this->inTenantA(fn () => Visit::whereDate('date', '2026-03-02')->firstOrFail());
+        $this->assertSame('2026-03-02 14:00', $visit->planned_start->utc()->format('Y-m-d H:i'), '08:00 in Chicago is 14:00 UTC.');
+
+        $this->actingAs($this->carer, 'sanctum')->getJson('/api/visits/my-day')
+            ->assertJsonPath('data.visits.0.planned_start', '2026-03-02T08:00:00-06:00');
+
+        // A coordinator setting the real times: also local.
+        $this->travelTo('2026-03-02 18:00');
+        $this->actingAs($this->coordinator, 'sanctum')->postJson('/api/visits/set-times', ['id' => $visit->id, 'in' => '08:05', 'out' => '09:00'])
+            ->assertOk()->assertJsonPath('data.checked_in_at', '2026-03-02T08:05:00-06:00')->assertJsonPath('data.worked_minutes', 55);
+    }
+
+    public function test_the_caregiver_list_puts_visit_staff_first(): void
+    {
+        $list = $this->actingAs($this->coordinator, 'sanctum')->getJson('/api/visits/caregivers')->assertOk()->json('data');
+
+        $this->assertSame('Ama Carer', $list[0]['name']);
+        $this->assertNotContains($this->userB->id, array_column($list, 'id'));
+        $this->actingAs($this->carer, 'sanctum')->getJson('/api/visits/caregivers')->assertForbidden();
     }
 
     public function test_coordinator_screens_need_the_visit_permission(): void

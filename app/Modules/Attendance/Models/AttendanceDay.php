@@ -2,6 +2,7 @@
 
 namespace App\Modules\Attendance\Models;
 
+use App\Casts\UtcDateTime;
 use App\Models\User;
 use App\Modules\Hr\Models\Branch;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
@@ -38,10 +39,10 @@ class AttendanceDay extends Model
             'left_early' => 'boolean',
             'early_minutes' => 'integer',
             'missed_checkout' => 'boolean',
-            'first_in_at' => 'datetime',
-            'last_out_at' => 'datetime',
+            'first_in_at' => UtcDateTime::class,
+            'last_out_at' => UtcDateTime::class,
             'is_manual' => 'boolean',
-            'closed_at' => 'datetime',
+            'closed_at' => UtcDateTime::class,
         ];
     }
 

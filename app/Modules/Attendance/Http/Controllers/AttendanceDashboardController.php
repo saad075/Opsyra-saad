@@ -65,7 +65,7 @@ class AttendanceDashboardController extends Controller
                 ],
                 'waiting' => [
                     'corrections' => AttendanceCorrection::where('status', 'open')->count(),
-                    'far_clock_ins' => AttendancePunch::whereNull('voided_at')->where('within_range', false)->where('punched_at', '>=', $today->subDays(7))->count(),
+                    'far_clock_ins' => AttendancePunch::whereNull('voided_at')->where('within_range', false)->where('punched_at', '>=', $today->subDays(7)->utc())->count(),
                     'missed_checkouts' => $days->where('missed_checkout', true)->filter(fn ($d) => $d->date->gte($today->subDays(7)))->count(),
                     'visits_to_review' => Visit::where('review_status', 'needs_review')->count(),
                 ],

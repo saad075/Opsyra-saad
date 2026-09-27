@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->prefix('visits')->group(function () {
     Route::get('my-month', [MyVisitsController::class, 'month']);
 
     Route::get('day', [VisitBoardController::class, 'day']);
+    Route::get('caregivers', [VisitBoardController::class, 'caregivers']);
     Route::post('create', [VisitBoardController::class, 'store']);
     Route::post('update', [VisitBoardController::class, 'update']);
     Route::post('cancel', [VisitBoardController::class, 'cancel']);

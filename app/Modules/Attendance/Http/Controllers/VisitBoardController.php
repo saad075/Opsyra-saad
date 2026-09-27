@@ -69,6 +69,19 @@ class VisitBoardController extends Controller
         ]);
     }
 
+    /** Who can be given visits: visit-based staff first, then everyone else current. */
+    public function caregivers()
+    {
+        $this->authorize('plan-visits');
+
+        $data = User::whereIn('status', ['active', 'pending'])
+            ->orderByRaw("attendance_mode = 'visits' desc")
+            ->orderBy('name')
+            ->get(['id', 'name', 'designation', 'attendance_mode']);
+
+        return response()->json(['status' => true, 'message' => 'Caregivers', 'data' => $data]);
+    }
+
     /** A one-off visit (not from a plan). */
     public function store(Request $request, VisitScheduler $scheduler)
     {

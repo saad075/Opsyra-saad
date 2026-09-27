@@ -11,9 +11,11 @@
     "typecheck": "vue-tsc -b --noEmit"
   },
   "dependencies": {
+    "@types/leaflet": "1.9",
     "@vicons/ionicons5": "^0.13.0",
     "axios": "^1.20.0",
     "chart.js": "^4.5.1",
+    "leaflet": "1.9",
     "naive-ui": "^2.45.3",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",

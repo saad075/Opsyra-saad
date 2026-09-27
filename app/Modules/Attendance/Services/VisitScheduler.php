@@ -87,7 +87,7 @@ class VisitScheduler
         Visit::where('visit_plan_id', $plan->id)
             ->where('status', 'planned')
             ->whereNull('updated_by')
-            ->where('planned_start', '>', $now)
+            ->where('planned_start', '>', $now->utc()) // query bindings aren't converted: compare in UTC
             ->delete();
 
         return $this->generateFor($plan->fresh(['staff', 'location']));

@@ -7,9 +7,14 @@ use App\Modules\Attendance\Models\AttendanceCorrection;
 use App\Modules\Attendance\Models\AttendanceDay;
 use App\Modules\Attendance\Models\AttendancePunch;
 use App\Modules\Attendance\Models\Holiday;
+use App\Modules\Attendance\Models\Visit;
+use App\Modules\Attendance\Models\VisitLocation;
+use App\Modules\Attendance\Models\VisitPlan;
 use App\Modules\Attendance\Services\AttendanceEditor;
 use App\Modules\Attendance\Services\DayCloser;
 use App\Modules\Attendance\Services\DayEvaluator;
+use App\Modules\Attendance\Services\VisitDaySettler;
+use App\Modules\Attendance\Services\VisitScheduler;
 use App\Modules\Attendance\Services\WorkCalendar;
 use App\Modules\Attendance\Support\Geo;
 use App\Modules\Auth\Models\LoginLog;
@@ -35,6 +40,7 @@ use App\Modules\Payroll\Services\PayslipGenerator;
 use App\Modules\Payroll\Support\PayPeriod;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Services\TenantProvisioner;
+use App\Modules\Rbac\Models\Role;
 use App\Modules\Setup\Models\SetupStepState;
 use App\Modules\Setup\Models\TenantSetting;
 use App\Modules\Tenancy\Support\TenantContext;
@@ -86,6 +92,8 @@ class DemoCompanyBuilder
         private DayCloser $dayCloser,
         private DayEvaluator $dayEvaluator,
         private WorkCalendar $workCalendar,
+        private VisitScheduler $visitScheduler,
+        private VisitDaySettler $visitSettler,
     ) {}
 
     /**
@@ -128,6 +136,7 @@ class DemoCompanyBuilder
                 $this->access();
                 $this->pay();
                 $this->hiringAndLeaving();
+                $this->homeCare();
                 $this->payroll();
                 $this->attendance();
                 $this->activity();
@@ -191,7 +200,7 @@ class DemoCompanyBuilder
             'Leadership' => ['Chief Executive Officer', 'Chief Financial Officer', 'Operations Director'],
             'Engineering' => ['Engineering Manager', 'Senior Software Engineer', 'Software Engineer', 'QA Engineer'],
             'Sales' => ['Sales Manager', 'Account Executive', 'Sales Development Rep'],
-            'Operations' => ['HR Manager', 'Payroll Officer', 'Office Manager', 'Customer Support'],
+            'Operations' => ['HR Manager', 'Payroll Officer', 'Office Manager', 'Customer Support', 'Care Worker'],
             'Finance' => ['Accountant'],
         ] as $department => $titles) {
             $dept = Department::create(['name' => $department]);
@@ -507,8 +516,9 @@ class DemoCompanyBuilder
 
             $branch = $this->branches[$this->branchOf($person)];
 
-            // Remote staff don't clock; the close-out below records them as remote.
-            for ($date = $this->today->subDays(21); ! $person->is_remote && $date->lt($this->today); $date = $date->addDay()) {
+            // Remote staff don't clock (the close-out records them as remote);
+            // caregivers check in at each visit instead (homeCare()).
+            for ($date = $this->today->subDays(21); ! $person->is_remote && $person->attendance_mode !== 'visits' && $date->lt($this->today); $date = $date->addDay()) {
                 $day = $date->toDateString();
 
                 if ($date->isWeekend() || isset($holidays[$day]) || ($person->joined_at && $person->joined_at->toDateString() > $day)) {
@@ -545,6 +555,128 @@ class DemoCompanyBuilder
             'requested_out' => '17:30',
             'reason' => 'My phone ran out of battery, so I couldn’t clock out.',
         ]);
+    }
+
+    /**
+     * A small home-care team (the Kindstead case): three caregivers based in
+     * Chicago who visit six clients at home, 3–4 visits a day on repeating
+     * plans, checked in and out with the phone's location. Paid by the hour
+     * of verified visit time, so this runs before payroll(). Mostly on time
+     * and at the door; one check-in far away (to review), the odd missed
+     * visit and forgotten check-out. A coordinator (the office manager)
+     * plans and reviews visits.
+     */
+    private function homeCare(): void
+    {
+        $chicago = $this->branches['Chicago'];
+        $chicago->update(['latitude' => 41.8787, 'longitude' => -87.6360, 'geofence_radius_m' => 200]);
+        $joined = $this->today->subDays(40);
+
+        $coordinator = Role::create(['name' => 'Care coordinator', 'guard_name' => 'sanctum']);
+        $coordinator->givePermissionTo('HRMS-VisitPlanning');
+        $this->people['office']->assignRole($coordinator);
+
+        $carers = [];
+        foreach ([['care1', 'Ama Boateng'], ['care2', 'Luis Herrera'], ['care3', 'Grace O’Neill']] as [$key, $name]) {
+            $carers[$key] = $this->makePerson($key, $name, 'Care Worker', 'Chicago', 'office', $joined, 'active');
+            $carers[$key]->forceFill(['attendance_mode' => 'visits', 'is_remote' => false])->save();
+        }
+
+        $hourly = PayComponent::create(['name' => 'Care visits', 'code' => 'CARE_HOURS', 'type' => 'earning', 'calculation' => 'per_hour', 'sequence' => 5]);
+        $tax = PayComponent::where('code', 'TAX_EST')->first() ?? PayComponent::create(['name' => 'Income tax (estimate)', 'code' => 'TAX_EST', 'type' => 'deduction', 'calculation' => 'percent_of_gross', 'sequence' => 80]);
+
+        foreach ($carers as $key => $carer) {
+            $salary = StaffSalary::create(['user_id' => $carer->id, 'effective_from' => $joined, 'pay_frequency' => 'monthly', 'currency' => 'USD', 'created_by' => $this->people['payroll']->id]);
+            $salary->components()->create(['pay_component_id' => $hourly->id, 'value' => [21.5, 20, 22.75][crc32($key) % 3]]);
+            $salary->components()->create(['pay_component_id' => $tax->id, 'value' => 12]);
+            StaffBankAccount::create([
+                'user_id' => $carer->id, 'account_holder_name' => $carer->name, 'bank_name' => 'Chase', 'bank_country' => 'US',
+                'account_number' => (string) (100000000 + crc32($key) % 899999999), 'routing_number' => '021000021', 'account_currency' => 'USD',
+            ]);
+        }
+
+        // Six clients a short drive apart on Chicago's north side (sample addresses).
+        $clients = [];
+        foreach ([
+            ['walsh', 'Mrs E. Walsh', '1520 N Dearborn Pkwy', 41.9103, -87.6310],
+            ['delgado', 'Mr R. Delgado', '2210 N Lincoln Ave', 41.9222, -87.6490],
+            ['novak', 'Mrs M. Novak', '615 W Wellington Ave', 41.9362, -87.6440],
+            ['brooks', 'Mr T. Brooks', '3030 N Broadway', 41.9372, -87.6446],
+            ['okoye', 'Mrs A. Okoye', '1050 W Addison St', 41.9474, -87.6555],
+            ['lindqvist', 'Mr H. Lindqvist', '4400 N Clarendon Ave', 41.9612, -87.6497],
+        ] as [$key, $name, $address, $lat, $lng]) {
+            $clients[$key] = VisitLocation::create([
+                'branch_id' => $chicago->id, 'name' => $name, 'reference' => 'CL-'.strtoupper(substr($key, 0, 3)), 'address' => $address,
+                'city' => 'Chicago', 'postcode' => '606'.(10 + crc32($key) % 40), 'latitude' => $lat, 'longitude' => $lng, 'geofence_radius_m' => 150,
+            ]);
+        }
+
+        // [carer, client, weekdays, start, end]
+        foreach ([
+            ['care1', 'walsh', [1, 2, 3, 4, 5], '08:00', '09:00'],
+            ['care1', 'delgado', [1, 2, 3, 4, 5], '09:30', '10:30'],
+            ['care1', 'novak', [1, 3, 5], '11:00', '12:00'],
+            ['care1', 'brooks', [2, 4], '11:00', '12:30'],
+            ['care2', 'okoye', [1, 2, 3, 4, 5, 6, 7], '08:00', '08:45'],
+            ['care2', 'lindqvist', [1, 2, 3, 4, 5], '10:00', '11:00'],
+            ['care2', 'walsh', [1, 2, 3, 4, 5], '17:00', '17:45'],
+            ['care2', 'delgado', [6], '10:00', '11:00'],
+            ['care3', 'novak', [2, 4], '14:00', '15:00'],
+            ['care3', 'brooks', [1, 3, 5], '14:00', '15:00'],
+            ['care3', 'okoye', [1, 2, 3, 4, 5], '18:00', '18:45'],
+            ['care3', 'lindqvist', [6, 7], '09:00', '10:00'],
+        ] as [$carer, $client, $days, $start, $end]) {
+            $plan = VisitPlan::create([
+                'visit_location_id' => $clients[$client]->id, 'user_id' => $carers[$carer]->id, 'weekdays' => $days,
+                'start_time' => $start, 'end_time' => $end, 'starts_on' => $joined->toDateString(), 'created_by' => $this->people['office']->id,
+            ]);
+            $from = CarbonImmutable::parse($joined->toDateString(), $chicago->timezone);
+            $this->visitScheduler->generateFor($plan->load(['staff', 'location']), $from, (int) $from->diffInDays(CarbonImmutable::now($chicago->timezone)) + VisitScheduler::DAYS_AHEAD);
+        }
+
+        // What happened on the visits so far.
+        $now = CarbonImmutable::now();
+        foreach (Visit::with('location')->where('planned_end', '<', $now)->orderBy('planned_start')->get() as $visit) {
+            $r = crc32('visit'.$visit->id) % 100;
+
+            if ($r < 2) {
+                continue; // missed: settled as missed below
+            }
+
+            $far = $r >= 98;
+            $in = $visit->planned_start->addMinutes($r % 14 - 4);
+            $point = fn (bool $away) => ['lat' => $visit->location->latitude + ($away ? 0.021 : 0.0002), 'lng' => $visit->location->longitude + ($away ? 0 : 0.0001)];
+            $distance = fn (array $pt) => Geo::distanceMetres($pt['lat'], $pt['lng'], $visit->location->latitude, $visit->location->longitude);
+            $checkIn = $point($far);
+
+            $facts = [
+                'checked_in_at' => $in, 'check_in_latitude' => $checkIn['lat'], 'check_in_longitude' => $checkIn['lng'], 'check_in_accuracy_m' => 12,
+                'check_in_distance_m' => $distance($checkIn), 'check_in_within_range' => ! $far, 'review_status' => $far ? 'needs_review' : null,
+            ];
+
+            if ($r < 4 && $now->gte($visit->planned_end->addHours(4))) {
+                // Forgot to check out: the settler flags it with no time until a coordinator sets it.
+                $visit->update($facts + ['status' => 'in_progress']);
+
+                continue;
+            }
+
+            $out = $visit->planned_end->addMinutes($r % 9);
+            $checkOut = $point(false);
+            $visit->update($facts + [
+                'status' => 'completed', 'checked_out_at' => $out, 'check_out_latitude' => $checkOut['lat'], 'check_out_longitude' => $checkOut['lng'],
+                'check_out_accuracy_m' => 10, 'check_out_distance_m' => $distance($checkOut), 'check_out_within_range' => true,
+                'worked_minutes' => (int) floor(($out->getTimestamp() - $in->getTimestamp()) / 60),
+                'caregiver_note' => $r % 11 === 0 ? 'Client in good spirits.' : null,
+            ]);
+        }
+
+        // Settle each caregiver's finished days from their visits.
+        foreach ($carers as $carer) {
+            for ($date = $joined; $date->lt($this->today); $date = $date->addDay()) {
+                $this->visitSettler->settle($carer, $this->workCalendar->expectationFor($carer, $date->toDateString()), isOver: true, now: $now);
+            }
+        }
     }
 
     /** One clocked day: in (and out) at minutes past local midnight, judged by the real rules. */

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Attendance\Models;
 
+use App\Casts\UtcDateTime;
 use App\Models\User;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
@@ -24,10 +25,10 @@ class Visit extends Model
     {
         return [
             'date' => 'date',
-            'planned_start' => 'datetime',
-            'planned_end' => 'datetime',
-            'checked_in_at' => 'datetime',
-            'checked_out_at' => 'datetime',
+            'planned_start' => UtcDateTime::class,
+            'planned_end' => UtcDateTime::class,
+            'checked_in_at' => UtcDateTime::class,
+            'checked_out_at' => UtcDateTime::class,
             'check_in_latitude' => 'float',
             'check_in_longitude' => 'float',
             'check_in_accuracy_m' => 'integer',
@@ -40,7 +41,7 @@ class Visit extends Model
             'check_out_within_range' => 'boolean',
             'missed_checkout' => 'boolean',
             'worked_minutes' => 'integer',
-            'reviewed_at' => 'datetime',
+            'reviewed_at' => UtcDateTime::class,
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Attendance\Models;
 
+use App\Casts\UtcDateTime;
 use App\Models\User;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,7 @@ class AttendanceCorrection extends Model
 
     protected function casts(): array
     {
-        return ['date' => 'date', 'resolved_at' => 'datetime'];
+        return ['date' => 'date', 'resolved_at' => UtcDateTime::class];
     }
 
     public function staff()

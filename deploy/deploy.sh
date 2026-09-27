@@ -30,6 +30,10 @@ BUNDLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$HOME/.opsyra-deploy.env" ] && . "$HOME/.opsyra-deploy.env"
 
 PHP_BIN="${PHP_BIN:-$(command -v php)}"
+# Errors to the deploy log, never to an error_log file: cPanel's PHP hides
+# them and writes ./error_log, which here is the cPanel repository — an
+# untracked file there makes cPanel skip every later deploy.
+PHP=("$PHP_BIN" -d display_errors=stderr -d log_errors=0)
 OPSYRA_HOME="${OPSYRA_HOME:-$HOME/opsyra}"
 OPSYRA_APPS="${OPSYRA_APPS:-us central}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"
@@ -38,17 +42,15 @@ STAMP="$(date -u +%Y%m%d%H%M%S)"
 log() { printf '\n==> %s\n' "$*"; }
 fail() { printf '\n!!! %s\n' "$*" >&2; exit 1; }
 
-"$PHP_BIN" -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);' \
-  || fail "PHP 8.2 or newer is needed ($("$PHP_BIN" -r 'echo PHP_VERSION;') found). Set PHP_BIN in ~/.opsyra-deploy.env."
-"$PHP_BIN" -m | grep -qi '^pdo_pgsql$' || fail "PHP's pdo_pgsql extension is missing. Enable it in cPanel → Select PHP Version (or MultiPHP)."
+"${PHP[@]}" -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);' \
+  || fail "PHP 8.2 or newer is needed ($("${PHP[@]}" -r 'echo PHP_VERSION;') found). Set PHP_BIN in ~/.opsyra-deploy.env."
+"${PHP[@]}" -m | grep -qi '^pdo_pgsql$' || fail "PHP's pdo_pgsql extension is missing. Enable it in cPanel → Select PHP Version (or MultiPHP)."
 
 deploy_app() {
   local app="$1"
   local base="${OPSYRA_HOME:?}/${app:?}"
   local release="$base/releases/$STAMP"
-  # display_errors: cPanel's PHP hides errors by default, which turns a crash
-  # into a silent exit code in the deploy log.
-  local artisan=("$PHP_BIN" -d display_errors=stderr "$release/artisan")
+  local artisan=("${PHP[@]}" "$release/artisan")
 
   log "Deploying $app → $release"
 
@@ -98,7 +100,7 @@ deploy_app() {
   mv -Tf "$base/current.tmp" "$base/current"
 
   # Workers pick up the new code on their next job.
-  "$PHP_BIN" "$base/current/artisan" queue:restart >/dev/null 2>&1 || true
+  "${PHP[@]}" "$base/current/artisan" queue:restart >/dev/null 2>&1 || true
 
   # Keep the last few releases for rollback.
   # (Paths are guarded with :? so an empty variable can never widen a delete.)

@@ -108,21 +108,35 @@ staff ID card (build new: no source to port), subscription enforcement, US
 payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 (ledger is new-build — see Checkpoint 1 decisions).
 
-**Next:** the Leave module (types, yearly allowances, requests, approvals —
-it takes over the "on leave (paid/unpaid)" marking HR does by hand now),
-or the test deployment (on hold until the screens were ready — they are).
+**Next (user, 2026-09-27): a "post-deployment fixes" batch**, gathered
+while the user tries the deployed test system. First item, agreed:
 
-**Test deployment: ready for the user to run** (2026-09-27). The user
-deploys it themselves with cPanel Git deployment — see
-`docs/deployment.md`. Two subdomains on the existing server:
-`opsyra.brainstormertech.com` (Central) and `us.opsyra.brainstormertech.com`
-(the app + API). GitHub Actions tests, builds a bundle
-(`deploy/build-bundle.sh`) and pushes it to a cPanel-managed repository,
-whose `.cpanel.yml` runs `deploy/deploy.sh` (release folders, `opsyra:preflight`
-safety check, migrations, atomic switch). Needs PostgreSQL 12+ and an
-ordinary (non-superuser) database user; no Redis. Real email via the
-server's mail. The code has no GitHub remote yet — the user creates the
-repository and pushes.
+1. **Company account owner.** Today the first Administrator (the sign-up
+   person; Alex Morgan in the demo) is protected by convention only — a
+   company can delete/edit the Administrator role, strip it from its only
+   admin, or offboard them, and lock itself out. Add: one owner per company
+   (the sign-up admin) who can't be deleted/offboarded or lose Administrator;
+   the Administrator role can't be deleted or reduced; the last administrator
+   can never be removed; owner-only, audited ownership transfer; Central
+   shows the owner and the super admin can reassign it if a company is
+   locked out.
+
+More items get added here as the user finds them. After this batch: the
+Leave module (types, yearly allowances, requests, approvals — it takes over
+the "on leave (paid/unpaid)" marking HR does by hand now).
+
+**Test deployment: live** (first deploy 2026-09-27 19:07 UTC).
+`opsyra.brainstormertech.com` (Central; super admin at `/admin/login`) and
+`us.opsyra.brainstormertech.com` (the app + API), on the BrainStormers
+cPanel server (AlmaLinux 8, PostgreSQL 16, PHP 8.3). GitHub
+(`brainstormertech/Opsyra`) Actions tests, builds a bundle
+(`deploy/build-bundle.sh`) and pushes it to the cPanel repository
+`~/repositories/opsyra-deploy`, whose `.cpanel.yml` runs `deploy/deploy.sh`
+(release folders, `opsyra:preflight`, migrations, atomic switch). See
+`docs/deployment.md`. Email goes through Elastic Email SMTP (the account
+SLMS360 uses). Open deployment follow-ups: turn off SSH password logins
+(password-guessing seen in the server log); move SLMS360 onto the same
+pipeline later (its email password is in `config/mail.php`).
 
 ## How to resume locally
 

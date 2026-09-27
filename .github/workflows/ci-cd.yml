@@ -131,10 +131,16 @@ jobs:
       - name: Commit the bundle
         working-directory: build/bundle
         run: |
+          # The apps' .gitignore files came along with the code; left in place
+          # they'd keep vendor/ and the built pages out of this commit.
+          find . -name .gitignore -type f -delete
           git init -q -b deploy
           git config user.name "Opsyra CI"
           git config user.email "ci@opsyra.invalid"
           git add -A
+          for f in us/vendor/autoload.php central/vendor/autoload.php central/public/build/manifest.json us/public/app.html; do
+            git ls-files --error-unmatch "$f" >/dev/null || { echo "::error::$f is missing from the bundle"; exit 1; }
+          done
           git commit -q -m "Build of ${GITHUB_SHA::12}: $(git -C "$GITHUB_WORKSPACE" log -1 --format=%s)"
 
       - name: Publish the `deploy` branch on GitHub

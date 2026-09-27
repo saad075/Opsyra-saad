@@ -46,11 +46,14 @@ deploy_app() {
   local app="$1"
   local base="${OPSYRA_HOME:?}/${app:?}"
   local release="$base/releases/$STAMP"
-  local artisan=("$PHP_BIN" "$release/artisan")
+  # display_errors: cPanel's PHP hides errors by default, which turns a crash
+  # into a silent exit code in the deploy log.
+  local artisan=("$PHP_BIN" -d display_errors=stderr "$release/artisan")
 
   log "Deploying $app → $release"
 
   [ -d "$BUNDLE/$app" ] || fail "The bundle has no '$app' folder."
+  [ -f "$BUNDLE/$app/vendor/autoload.php" ] || fail "The bundle's '$app' has no vendor/ — it was built or committed incompletely."
   [ -f "$base/shared/.env" ] || fail "Missing $base/shared/.env — create it from deploy/$app.env.example first (see docs/deployment.md)."
 
   mkdir -p "$base/releases" \

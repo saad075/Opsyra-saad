@@ -112,15 +112,17 @@ payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 it takes over the "on leave (paid/unpaid)" marking HR does by hand now),
 or the test deployment (on hold until the screens were ready — they are).
 
-**Test deployment: on hold until the frontend is ready** (user decision,
-2026-09-24). Target is `opsyra.brainstormertech.com` on BrainStormers'
-existing server, alongside SLMS360. DNS is at the domain registrar; the user
-adds the A record. Unconfirmed: the server is probably `203.161.41.187`
-(the only non-GitHub host in this PC's `~/.ssh/known_hosts`), and SLMS360's
-root `.htaccess` suggests Apache, possibly under cPanel. Nobody has
-connected to it yet: ask before any SSH, starting read-only. Hard
-requirement when it happens: the app's Postgres role must not be a
-superuser or have BYPASSRLS, or tenant isolation silently switches off.
+**Test deployment: ready for the user to run** (2026-09-27). The user
+deploys it themselves with cPanel Git deployment — see
+`docs/deployment.md`. Two subdomains on the existing server:
+`opsyra.brainstormertech.com` (Central) and `us.opsyra.brainstormertech.com`
+(the app + API). GitHub Actions tests, builds a bundle
+(`deploy/build-bundle.sh`) and pushes it to a cPanel-managed repository,
+whose `.cpanel.yml` runs `deploy/deploy.sh` (release folders, `opsyra:preflight`
+safety check, migrations, atomic switch). Needs PostgreSQL 12+ and an
+ordinary (non-superuser) database user; no Redis. Real email via the
+server's mail. The code has no GitHub remote yet — the user creates the
+repository and pushes.
 
 ## How to resume locally
 

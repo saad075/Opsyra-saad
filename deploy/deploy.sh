@@ -44,7 +44,7 @@ fail() { printf '\n!!! %s\n' "$*" >&2; exit 1; }
 
 deploy_app() {
   local app="$1"
-  local base="$OPSYRA_HOME/$app"
+  local base="${OPSYRA_HOME:?}/${app:?}"
   local release="$base/releases/$STAMP"
   local artisan=("$PHP_BIN" "$release/artisan")
 
@@ -61,11 +61,11 @@ deploy_app() {
     "$base/shared/storage/logs"
 
   cp -R "$BUNDLE/$app" "$release"
-  rm -rf "$release/storage"
+  rm -rf "${release:?}/storage"
   ln -s "$base/shared/storage" "$release/storage"
   ln -s "$base/shared/.env" "$release/.env"
   mkdir -p "$release/bootstrap/cache"
-  rm -f "$release/bootstrap/cache/"*.php
+  rm -f "${release:?}/bootstrap/cache/"*.php
 
   # Safety before touching the database (country apps: company separation).
   if [ "$app" != "central" ]; then
@@ -84,6 +84,12 @@ deploy_app() {
   "${artisan[@]}" view:cache
   "${artisan[@]}" event:cache
 
+  # cPanel creates the subdomain's document root as a real folder; the first
+  # deploy moves it aside so 'current' can become the link.
+  if [ -d "$base/current" ] && [ ! -L "$base/current" ]; then
+    mv "$base/current" "$base/current.placeholder-$STAMP"
+  fi
+
   # Go live: one atomic switch of the link the web server follows.
   ln -sfn "$release" "$base/current.tmp"
   mv -Tf "$base/current.tmp" "$base/current"
@@ -92,7 +98,8 @@ deploy_app() {
   "$PHP_BIN" "$base/current/artisan" queue:restart >/dev/null 2>&1 || true
 
   # Keep the last few releases for rollback.
-  ls -1dt "$base/releases/"*/ | tail -n +"$((KEEP_RELEASES + 1))" | xargs -r rm -rf
+  # (Paths are guarded with :? so an empty variable can never widen a delete.)
+  ls -1dt "${base:?}/releases/"*/ | tail -n +"$((KEEP_RELEASES + 1))" | xargs -r rm -rf --
 
   log "$app is live: $(readlink "$base/current")"
 }

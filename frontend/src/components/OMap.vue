@@ -31,7 +31,8 @@ const el = ref<HTMLDivElement | null>(null)
 let map: L.Map | null = null
 let layer: L.LayerGroup | null = null
 
-const tiles = (import.meta.env.VITE_MAP_TILE_URL as string | undefined) ?? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+// `||`, not `??`: an empty setting (e.g. an unset CI variable) means the default.
+const tiles = (import.meta.env.VITE_MAP_TILE_URL as string | undefined) || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const colours = { ok: '#0e6e62', far: '#a23b45', neutral: '#4b6584' }
 
 function draw() {

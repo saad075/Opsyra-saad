@@ -14,6 +14,7 @@
 #   CPANEL_KNOWN_HOSTS  the server's host key line (ssh-keyscan -p <port> <host>)
 # Variables (optional):
 #   VITE_CENTRAL_URL    defaults to https://opsyra.brainstormertech.com
+#   VITE_MAP_TILE_URL   map tiles; defaults to OpenStreetMap's public tiles
 
 name: CI/CD
 
@@ -122,6 +123,7 @@ jobs:
       - name: Build the bundle
         env:
           VITE_CENTRAL_URL: ${{ vars.VITE_CENTRAL_URL || 'https://opsyra.brainstormertech.com' }}
+          VITE_MAP_TILE_URL: ${{ vars.VITE_MAP_TILE_URL }}
         run: bash deploy/build-bundle.sh
 
       # The bundle as its own branch: one commit per build, so the cPanel

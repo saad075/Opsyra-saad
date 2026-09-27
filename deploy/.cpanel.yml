@@ -1,0 +1,9 @@
+---
+# cPanel Git deployment for Opsyra. This file sits at the root of the
+# built bundle (the CI pipeline puts it there). cPanel runs it when the
+# repository is pushed to (push deployment) or when you click "Deploy
+# HEAD Commit" (pull deployment). All the work is in deploy.sh — see
+# docs/deployment.md.
+deployment:
+  tasks:
+    - /bin/bash deploy.sh

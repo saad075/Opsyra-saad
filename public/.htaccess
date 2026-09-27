@@ -18,8 +18,28 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # The Vue app (deployed as app.html + assets/): any path that isn't the
+    # API or a real file is one of its pages. Only once app.html exists, so
+    # a server without the built app behaves exactly as before.
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum|up|storage)(/|$)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{DOCUMENT_ROOT}/app.html -f
+    RewriteRule ^ app.html [L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# The app page must always be fresh (it names the current build's files);
+# built files carry a content hash in their names (index-BKUEz1Dz.js), so
+# they can be cached for a year.
+<IfModule mod_headers.c>
+    <Files "app.html">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </Files>
+    <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2?|svg|png)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
 </IfModule>

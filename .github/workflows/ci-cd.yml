@@ -1,0 +1,152 @@
+# Opsyra CI/CD
+#
+# Every push and pull request: all tests (the two PHP apps against a real
+# PostgreSQL, as the app requires; the Vue app's type check and tests).
+#
+# Every push to the main branch that passes: build the deployable bundle
+# (deploy/build-bundle.sh) and publish it as the `deploy` branch. Then, if
+# the cPanel secrets are set, push it to the cPanel repository, which runs
+# .cpanel.yml → deploy.sh on the server. See docs/deployment.md.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   CPANEL_GIT_URL      e.g. ssh://cpaneluser@203.161.41.187/home/cpaneluser/repositories/opsyra-deploy
+#   CPANEL_SSH_KEY      a private key whose public half is authorised in cPanel → SSH Access
+#   CPANEL_KNOWN_HOSTS  the server's host key line (ssh-keyscan -p <port> <host>)
+# Variables (optional):
+#   VITE_CENTRAL_URL    defaults to https://opsyra.brainstormertech.com
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false # never cut a deploy off half-way
+
+permissions:
+  contents: write # publishing the `deploy` branch
+
+jobs:
+  backend:
+    name: PHP tests (country app + Central)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, bcmath, gd, intl, mbstring
+          coverage: none
+
+      # The same kind of database user production must use: an ordinary role,
+      # not a superuser and without BYPASSRLS — otherwise the tenant isolation
+      # tests would pass for the wrong reason.
+      - name: Create test databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -c "CREATE ROLE opsyra LOGIN PASSWORD 'opsyra_local_dev' NOSUPERUSER NOBYPASSRLS NOCREATEROLE"
+          psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE opsyra_us_test OWNER opsyra"
+          psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE opsyra_central_test OWNER opsyra"
+
+      - name: Country app
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+
+      - name: Opsyra Central
+        working-directory: central
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          cp .env.example .env
+          php artisan key:generate
+          npm ci --no-audit --no-fund && npm run build
+          php artisan test
+
+  frontend:
+    name: Vue app (types + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    name: Build bundle and deploy
+    needs: [backend, frontend]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: test
+    env:
+      # At job level so the cPanel step can be skipped when it isn't set up yet.
+      CPANEL_GIT_URL: ${{ secrets.CPANEL_GIT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, bcmath, gd, intl, mbstring
+          coverage: none
+          tools: composer
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build the bundle
+        env:
+          VITE_CENTRAL_URL: ${{ vars.VITE_CENTRAL_URL || 'https://opsyra.brainstormertech.com' }}
+        run: bash deploy/build-bundle.sh
+
+      # The bundle as its own branch: one commit per build, so the cPanel
+      # repository (push or pull) always gets exactly what passed the tests.
+      - name: Commit the bundle
+        working-directory: build/bundle
+        run: |
+          git init -q -b deploy
+          git config user.name "Opsyra CI"
+          git config user.email "ci@opsyra.invalid"
+          git add -A
+          git commit -q -m "Build of ${GITHUB_SHA::12}: $(git -C "$GITHUB_WORKSPACE" log -1 --format=%s)"
+
+      - name: Publish the `deploy` branch on GitHub
+        working-directory: build/bundle
+        run: git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" deploy:deploy
+
+      - name: Push to cPanel (runs the deployment on the server)
+        if: ${{ env.CPANEL_GIT_URL != '' }}
+        working-directory: build/bundle
+        env:
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CPANEL_SSH_KEY" > ~/.ssh/cpanel && chmod 600 ~/.ssh/cpanel
+          printf '%s\n' "$CPANEL_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/cpanel -o IdentitiesOnly=yes" git push -f "$CPANEL_GIT_URL" deploy:deploy

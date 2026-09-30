@@ -66,7 +66,7 @@ class SubscriptionDashboardTest extends TestCase
         Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => true])]);
         $company = $this->company(['trial_ends_at' => now()->addDays(2)]);
 
-        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/extend-trial", ['days' => 14])->assertSessionHas('status');
+        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/extend-trial", ['days' => '14'])->assertSessionHas('status');
 
         $this->assertSame(now()->addDays(16)->toDateString(), $company->fresh()->trial_ends_at->toDateString());
         $this->assertNotNull($company->fresh()->synced_at);

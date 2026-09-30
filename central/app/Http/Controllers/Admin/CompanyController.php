@@ -45,7 +45,7 @@ class CompanyController extends Controller
 
     public function extendTrial(Request $request, Company $company, SubscriptionSync $sync)
     {
-        $days = $request->validate(['days' => ['required', 'integer', 'min:1', 'max:90']])['days'];
+        $days = (int) $request->validate(['days' => ['required', 'integer', 'min:1', 'max:90']])['days'];
 
         // Extend from the later of today and the current end date.
         $from = $company->trial_ends_at && $company->trial_ends_at->isFuture() ? $company->trial_ends_at : now();

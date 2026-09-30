@@ -107,6 +107,44 @@ class CompanyController extends Controller
         return back()->with('status', "A new welcome email is on its way to {$company->admin_email}.");
     }
 
+    /**
+     * Makes someone else the company's account owner: for a company that
+     * has locked itself out, or whose owner left without handing on. The
+     * country records it as done by Opsyra support, naming this admin.
+     */
+    public function changeOwner(Request $request, Company $company)
+    {
+        abort_if(in_array($company->status, ['provisioning', 'provisioning_failed'], true) || $company->is_demo, 404);
+
+        $validated = $request->validate([
+            'owner_email' => ['required', 'email', 'max:255'],
+            'owner_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $response = CountryDeployment::for($company->country)->post("tenants/{$company->client_code}/owner", [
+                'email' => strtolower($validated['owner_email']),
+                'reason' => $validated['owner_reason'],
+                'by' => $request->user()->name,
+            ]);
+        } catch (RuntimeException $e) {
+            report($e);
+
+            return back()->withInput()->with('warning', "Couldn’t ask the {$company->countryName()} deployment: {$e->getMessage()}");
+        }
+
+        if (! $response->successful()) {
+            return back()->withInput()->with('warning', 'Owner not changed: '.($response->json('message') ?? "HTTP {$response->status()}"));
+        }
+
+        $company->update([
+            'admin_name' => $response->json('data.owner.name'),
+            'admin_email' => strtolower($response->json('data.owner.email')),
+        ]);
+
+        return back()->with('status', "{$company->admin_name} is now the account owner. If they can’t sign in, use “Resend welcome email”.");
+    }
+
     private function pushed(Company $company, SubscriptionSync $sync, string $message)
     {
         if ($sync->push($company)) {

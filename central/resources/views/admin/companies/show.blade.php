@@ -29,7 +29,7 @@
             <div class="rounded-2xl border border-line bg-white p-6">
                 <h2 class="font-bold">Details</h2>
                 <dl class="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                    <div><dt class="text-muted">Administrator</dt><dd class="font-semibold">{{ $company->admin_name }}</dd></div>
+                    <div><dt class="text-muted">Account owner</dt><dd class="font-semibold">{{ $company->admin_name }}</dd></div>
                     <div><dt class="text-muted">Email</dt><dd class="font-semibold"><a href="mailto:{{ $company->admin_email }}" class="hover:text-brand-600">{{ $company->admin_email }}</a></dd></div>
                     <div><dt class="text-muted">Phone</dt><dd class="font-semibold">{{ $company->phone ?? '—' }}</dd></div>
                     <div><dt class="text-muted">Staff at sign-up</dt><dd class="font-semibold">{{ $company->expected_employees ?? '—' }}</dd></div>
@@ -66,6 +66,21 @@
                         <p class="text-sm font-semibold">Welcome email</p>
                         <p class="mt-1 text-xs text-muted">Sends {{ $company->admin_email }} a new “set your password” link. Any earlier link stops working.</p>
                         <button class="mt-3 w-full rounded-lg border border-line py-2 font-semibold hover:bg-canvas">Resend welcome email</button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.companies.owner', $company) }}" class="rounded-2xl border border-line bg-white p-5">
+                        @csrf
+                        <p class="text-sm font-semibold">Change account owner</p>
+                        <p class="mt-1 text-xs text-muted">Only for a company that’s locked out, or whose owner left without handing on. Normally the owner does this inside Opsyra. The person must already be active staff at the company; they become an Administrator.</p>
+                        <label class="mt-3 block text-sm">New owner’s email
+                            <input name="owner_email" type="email" required value="{{ old('owner_email') }}" class="mt-1 block w-full rounded-lg border border-line px-3 py-2">
+                        </label>
+                        @error('owner_email') <p class="mt-1 text-xs text-red-700">{{ $message }}</p> @enderror
+                        <label class="mt-3 block text-sm">Reason (kept in the company’s record)
+                            <input name="owner_reason" required value="{{ old('owner_reason') }}" placeholder="e.g. Owner left; request from the director by phone" class="mt-1 block w-full rounded-lg border border-line px-3 py-2">
+                        </label>
+                        @error('owner_reason') <p class="mt-1 text-xs text-red-700">{{ $message }}</p> @enderror
+                        <button class="mt-3 w-full rounded-lg border border-line py-2 font-semibold hover:bg-canvas">Change owner</button>
                     </form>
                 @endunless
 

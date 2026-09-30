@@ -9,6 +9,8 @@ export interface ApiEnvelope<T> {
 export interface Me {
   user: { id: number; name: string; email: string; designation: string | null; avatar: string | null; status: string }
   must_change_password: boolean
+  /** The company account owner: always an Administrator, can't be offboarded. */
+  is_owner: boolean
   company: { name: string; client_code: string; country: string; is_demo: boolean }
   roles: string[]
   permissions: string[]
@@ -167,6 +169,7 @@ export interface OffboardRequest {
 
 export interface StaffProfile {
   staff: StaffMember
+  is_owner: boolean
   manager: PersonRef | null
   direct_reports: PersonRef[]
   onboarding: OnboardingRequest | null
@@ -350,6 +353,14 @@ export interface RoleWithPermissions {
   name: string
   permissions: Named[]
   staff_count: number
+  /** Administrator: always every permission, can't be edited or deleted. */
+  is_locked: boolean
+}
+
+export interface CompanyOwnerInfo {
+  owner: { id: number; name: string; email: string; designation: string | null } | null
+  is_me: boolean
+  history: { id: number; from: string | null; to: string | null; by: string | null; reason: string | null; at: string }[]
 }
 
 export interface ApproverRow {

@@ -10,7 +10,8 @@ use App\Modules\Tenancy\Support\TenantContext;
  * Roles every new tenant starts with, so the first admin has something to
  * hand out on day one — the Setup wizard's "Approvers" step becomes "put
  * someone in the Senior approver role". Tenants can rename, edit or delete
- * them (Administrator excepted in spirit: it's what their first admin holds).
+ * them, except Administrator: it always has every permission and can't be
+ * changed or deleted (RoleController), since the account owner holds it.
  */
 final class DefaultRoles
 {

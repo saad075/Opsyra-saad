@@ -11,7 +11,9 @@ use App\Modules\Hr\Models\StaffOnboardingRequest;
 use App\Modules\Hr\Models\UserBranch;
 use App\Modules\Hr\Models\UserUpdateLog;
 use App\Modules\Hr\Services\StaffOnboarding;
+use App\Modules\Platform\Services\CompanyOwnership;
 use App\Modules\Rbac\Models\Role;
+use App\Modules\Rbac\Support\DefaultRoles;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +108,7 @@ class StaffController extends Controller
             'message' => 'Staff profile',
             'data' => [
                 'staff' => $staff,
+                'is_owner' => app(CompanyOwnership::class)->isOwner($staff),
                 // Any status: a manager who has since left is still worth showing.
                 'manager' => $staff->hierarchy_parent_id ? User::find($staff->hierarchy_parent_id, ['id', 'name', 'designation', 'status']) : null,
                 'direct_reports' => User::where('hierarchy_parent_id', $staff->id)->where('status', 'active')->orderBy('name')->get(['id', 'name', 'designation']),
@@ -293,9 +296,14 @@ class StaffController extends Controller
         if ($request->has('role_id')) {
             $this->authorize('update-staff-permissions');
 
-            if (! empty($validated['role_id'])) {
-                $role = Role::findById($validated['role_id'], 'sanctum');
-                $user->syncRoles([$role->name]);
+            $newRole = empty($validated['role_id']) ? null : Role::findById($validated['role_id'], 'sanctum');
+
+            if ($newRole?->name !== DefaultRoles::ADMINISTRATOR && $user->hasRole(DefaultRoles::ADMINISTRATOR)) {
+                app(CompanyOwnership::class)->ensureCanLoseAdministrator($user);
+            }
+
+            if ($newRole) {
+                $user->syncRoles([$newRole->name]);
             } else {
                 $user->syncRoles([]);
             }

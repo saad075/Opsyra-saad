@@ -2,6 +2,35 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-30 — Company account owner
+
+- **Why:** a company could lock itself out: delete or cut down the
+  Administrator role, take it from its only admin, or offboard them.
+- **One owner per company** (`tenants.owner_user_id`), the sign-up
+  administrator to start with; existing companies were backfilled with
+  their first administrator. The owner **always keeps the Administrator
+  role** (staff edit refuses, 409) and **can't be offboarded** (refused at
+  submit and again at approval).
+- **The Administrator role is locked:** it can't be renamed, have
+  permissions removed, or be deleted (409). New permissions keep being
+  added to it by `grantToAdministrators`.
+- **"The last administrator can never be removed"** follows from those
+  two: the owner is always an active administrator. There is no separate
+  count-the-admins check.
+- **Transfer:** only the owner, re-entering their password, to an active
+  member of staff who isn't leaving. The new owner gets Administrator; the
+  old owner keeps it (the new owner can change that). Every transfer is
+  recorded in `ownership_transfers` (RLS) with who did it and why, shown on
+  Company details.
+- **Opsyra support** can reassign from Central (by email + reason) for a
+  locked-out company; recorded as "Opsyra support (<super admin>)".
+- **Central learns the owner** through the hourly usage pull (name and
+  email only) and keeps its customer contact current. That's an exception
+  to "no personal data leaves the country", accepted because Central
+  already holds that contact from sign-up.
+- Locked in the public demo. Ideas from Frappe (Administrator user can't
+  lose System Manager) and Odoo (admin user can't be archived).
+
 ## 2026-09-29 — Sign-ups must not depend on email
 
 - **Why:** the first real trial sign-ups all showed "Setup failed". The

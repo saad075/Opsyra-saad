@@ -72,6 +72,10 @@ class TenantProvisioner
                 return $admin;
             });
 
+            // The sign-up administrator is the company's account owner
+            // (CompanyOwnership): they can't be locked out.
+            $tenant->forceFill(['owner_user_id' => $admin->id])->save();
+
             ClientDirectoryEntry::create([
                 'client_code' => $data['client_code'],
                 'country' => $country,

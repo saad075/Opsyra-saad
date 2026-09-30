@@ -16,6 +16,7 @@ function signedIn(overrides: Partial<Me> = {}) {
   auth.me = {
     user: { id: 1, name: 'Ada Admin', email: 'ada@acme.test', designation: null, avatar: null, status: 'active' },
     must_change_password: false,
+    is_owner: false,
     company: { name: 'Acme', client_code: 'acme', country: 'gb', is_demo: false },
     roles: [],
     permissions: [],

@@ -5,6 +5,7 @@ namespace App\Modules\Rbac\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Rbac\Models\Role;
+use App\Modules\Rbac\Support\DefaultRoles;
 use App\Modules\Rbac\Support\PermissionCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -41,6 +42,7 @@ class RoleController extends Controller
             ->get()
             ->each(function (Role $role) {
                 $role->staff_count = User::role($role)->count();
+                $role->is_locked = $role->name === DefaultRoles::ADMINISTRATOR;
             });
 
         return response()->json([
@@ -107,6 +109,7 @@ class RoleController extends Controller
         $role = Role::findById($validated['id'], 'sanctum');
 
         $this->authorize('update', $role);
+        $this->ensureNotAdministrator($role);
 
         $role->name = $validated['name'];
         $role->save();
@@ -132,6 +135,7 @@ class RoleController extends Controller
         $role = Role::findById($validated['id'], 'sanctum');
 
         $this->authorize('delete', $role);
+        $this->ensureNotAdministrator($role);
 
         if (User::role($role)->count() > 0) {
             return response()->json([
@@ -146,5 +150,20 @@ class RoleController extends Controller
             'status' => true,
             'message' => 'Role deleted successfully.',
         ]);
+    }
+
+    /**
+     * The Administrator role always means "everything" (new permissions are
+     * added to it automatically) and is what the company account owner
+     * holds, so it can't be renamed, cut down or deleted.
+     */
+    private function ensureNotAdministrator(Role $role): void
+    {
+        if ($role->name === DefaultRoles::ADMINISTRATOR) {
+            abort(response()->json([
+                'status' => false,
+                'message' => 'The Administrator role always has every permission, so it can’t be changed or deleted. Create another role for a narrower set.',
+            ], 409));
+        }
     }
 }

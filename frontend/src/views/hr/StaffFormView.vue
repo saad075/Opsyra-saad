@@ -29,6 +29,8 @@ const managers = ref<PersonRef[]>([])
 const roles = ref<Named[]>([])
 const templates = ref<Named[]>([])
 const currentRoleId = ref<number | null>(null)
+// The account owner always keeps the Administrator role (the API refuses).
+const isOwner = ref(false)
 
 const form = reactive({
   name: '',
@@ -85,6 +87,7 @@ onMounted(async () => {
         city: s.city ?? '',
         zip_code: s.zip_code ?? '',
       })
+      isOwner.value = data.data.is_owner
       currentRoleId.value = s.roles[0]?.id ?? null
       form.role_id = currentRoleId.value
     } else if (branches.value.length === 1) {
@@ -189,8 +192,8 @@ const err = (field: string) => ({ feedback: errors.value[field] ?? errors.value[
             </NFormItem>
           </NGridItem>
           <NGridItem v-if="canSetRole && roles.length" span="2 m:1">
-            <NFormItem label="Role" v-bind="err('role_id')">
-              <NSelect v-model:value="form.role_id" clearable :options="roles.map((r) => ({ label: r.name, value: r.id }))" />
+            <NFormItem label="Role" v-bind="isOwner ? { feedback: 'The account owner always has the Administrator role.' } : err('role_id')">
+              <NSelect v-model:value="form.role_id" :clearable="!isOwner" :disabled="isOwner" :options="roles.map((r) => ({ label: r.name, value: r.id }))" />
             </NFormItem>
           </NGridItem>
           <NGridItem v-if="!isEdit && templates.length" span="2 m:1">

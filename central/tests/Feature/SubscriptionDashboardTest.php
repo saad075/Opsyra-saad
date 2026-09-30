@@ -155,6 +155,44 @@ class SubscriptionDashboardTest extends TestCase
         $this->assertNull($company->fresh()->provision_error);
     }
 
+    public function test_a_super_admin_can_change_the_account_owner(): void
+    {
+        Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => true, 'data' => ['owner' => ['name' => 'Bob Baker', 'email' => 'bob@co.test']]])]);
+        $company = $this->company();
+
+        $this->actingAs($this->admin)->get("/admin/companies/{$company->id}")->assertSee('Change account owner');
+        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/owner", ['owner_email' => 'Bob@co.test', 'owner_reason' => 'Owner left'])
+            ->assertSessionHas('status');
+
+        $this->assertSame(['Bob Baker', 'bob@co.test'], [$company->fresh()->admin_name, $company->fresh()->admin_email]);
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), "/api/internal/tenants/{$company->client_code}/owner")
+            && $r['email'] === 'bob@co.test' && $r['reason'] === 'Owner left' && $r['by'] === $this->admin->name);
+    }
+
+    public function test_a_refused_owner_change_leaves_the_contact_alone(): void
+    {
+        Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => false, 'message' => 'No one with the email x@co.test'], 404)]);
+        $company = $this->company();
+        $before = $company->admin_email;
+
+        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/owner", ['owner_email' => 'x@co.test', 'owner_reason' => 'Owner left'])
+            ->assertSessionHas('warning', fn ($w) => str_contains($w, 'No one with the email'));
+
+        $this->assertSame($before, $company->fresh()->admin_email);
+    }
+
+    public function test_usage_sync_keeps_the_owner_contact_current(): void
+    {
+        $company = $this->company(['client_code' => 'acme']);
+        Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => true, 'data' => [
+            ['client_code' => 'acme', 'active_employees' => 3, 'owner' => ['name' => 'New Owner', 'email' => 'New@acme.test']],
+        ]])]);
+
+        $this->artisan('companies:sync-usage')->assertSuccessful();
+
+        $this->assertSame(['New Owner', 'new@acme.test'], [$company->fresh()->admin_name, $company->fresh()->admin_email]);
+    }
+
     public function test_companies_list_filters_and_searches(): void
     {
         $this->company(['name' => 'Alpha Trading', 'status' => 'active']);

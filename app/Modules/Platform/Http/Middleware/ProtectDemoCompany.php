@@ -12,15 +12,15 @@ use Symfony\Component\HttpFoundation\Response;
  * The public demo company is shared by every visitor and rebuilt nightly.
  * Visitors may try almost everything — add staff, run payroll, approve —
  * but nothing that would lock the next visitor out: the shared demo
- * account's password, its roles and permissions, its own staff record, and
- * role definitions stay as they are.
+ * account's password, its roles and permissions, its own staff record,
+ * role definitions and who owns the account stay as they are.
  */
 class ProtectDemoCompany
 {
     /** Account and access settings — fixed in the demo. */
     private const BLOCKED_ROUTES = ['auth.change-password'];
 
-    private const BLOCKED_PATHS = ['api/roles/*'];
+    private const BLOCKED_PATHS = ['api/roles/*', 'api/company/owner/*'];
 
     /** Routes that act on a staff member named by id / user_id. */
     private const STAFF_PATHS = ['api/staff/*', 'api/payroll/bank-accounts/save'];

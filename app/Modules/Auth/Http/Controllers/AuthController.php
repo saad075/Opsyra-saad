@@ -103,6 +103,7 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user->only(['id', 'name', 'email', 'designation', 'avatar', 'status']),
                 'must_change_password' => (bool) $user->must_change_password,
+                'is_owner' => $tenant->owner_user_id === $user->id,
                 'company' => [
                     'name' => TenantSetting::get('company_name', $tenant->name),
                     'client_code' => $tenant->client_code,

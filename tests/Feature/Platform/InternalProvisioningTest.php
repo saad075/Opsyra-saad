@@ -7,8 +7,10 @@ use App\Modules\Auth\Jobs\SendSignInLink;
 use App\Modules\Auth\Models\PasswordResetCode;
 use App\Modules\Auth\Models\TenantAccessToken;
 use App\Modules\Auth\Notifications\WelcomeAdminNotification;
+use App\Modules\Platform\Models\OwnershipTransfer;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Platform\Support\MailHealth;
+use App\Modules\Rbac\Support\DefaultRoles;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -204,8 +206,29 @@ class InternalProvisioningTest extends TestCase
         $response = $this->signedPost([], path: '/api/internal/usage')->assertOk();
 
         $acme = collect($response->json('data'))->firstWhere('client_code', 'acme');
-        $this->assertSame(['client_code' => 'acme', 'active_employees' => 1], $acme);
+        $this->assertSame(['client_code' => 'acme', 'active_employees' => 1, 'owner' => ['name' => 'Ada Admin', 'email' => 'ada@acme.test']], $acme);
         $this->assertSame(['failing', 'last_sent_at', 'last_failed_at', 'last_error'], array_keys($response->json('mail')));
+    }
+
+    public function test_opsyra_support_can_reassign_the_account_owner(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+        $tenant = Tenant::where('client_code', 'acme')->firstOrFail();
+        $bob = app(TenantContext::class)->runAs($tenant->id, fn () => User::factory()->for($tenant)->create(['email' => 'bob@acme.test', 'name' => 'Bob', 'status' => 'active']));
+
+        $body = ['email' => 'BOB@acme.test', 'reason' => 'Ada left without handing on', 'by' => 'Kashif'];
+        $this->postJson('/api/internal/tenants/acme/owner', $body)->assertUnauthorized();
+        $this->signedPost(['email' => 'nobody@acme.test'] + $body, path: '/api/internal/tenants/acme/owner')->assertNotFound();
+
+        $this->signedPost($body, path: '/api/internal/tenants/acme/owner')
+            ->assertOk()
+            ->assertJsonPath('data.owner', ['name' => 'Bob', 'email' => 'bob@acme.test']);
+
+        $this->assertSame($bob->id, $tenant->fresh()->owner_user_id);
+        $transfer = app(TenantContext::class)->runAs($tenant->id, fn () => OwnershipTransfer::sole());
+        $this->assertNull($transfer->by_user_id);
+        $this->assertSame('Opsyra support (Kashif)', $transfer->by_label);
+        $this->assertTrue(app(TenantContext::class)->runAs($tenant->id, fn () => $bob->fresh()->hasRole(DefaultRoles::ADMINISTRATOR)));
     }
 
     public function test_subscription_updates_need_a_valid_signature_too(): void

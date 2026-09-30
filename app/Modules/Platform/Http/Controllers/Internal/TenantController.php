@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Services\AdminInvitation;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Services\CompanyOwnership;
 use App\Modules\Platform\Services\TenantProvisioner;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Http\Request;
@@ -82,6 +83,35 @@ class TenantController extends Controller
         $invitation->send($tenant, $admin);
 
         return response()->json(['status' => true, 'message' => 'A new welcome email is on its way.'], 202);
+    }
+
+    /**
+     * Opsyra support makes someone the account owner — for a company that
+     * has locked itself out, or whose owner has left without handing on.
+     * Recorded as done by support, with the named super admin and reason.
+     */
+    public function reassignOwner(Request $request, string $clientCode, CompanyOwnership $ownership)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'reason' => ['required', 'string', 'max:500'],
+            'by' => ['required', 'string', 'max:255'],
+        ]);
+
+        $tenant = Tenant::where('client_code', $clientCode)->first();
+        $to = $tenant ? $this->findUser($tenant, $validated['email']) : null;
+
+        if (! $to) {
+            return response()->json(['status' => false, 'message' => "No one with the email {$validated['email']} at company '{$clientCode}'."], 404);
+        }
+
+        $ownership->transfer($tenant, $to, null, 'Opsyra support ('.$validated['by'].')', $validated['reason']);
+
+        return response()->json([
+            'status' => true,
+            'message' => "{$to->name} is now the account owner.",
+            'data' => ['owner' => ['name' => $to->name, 'email' => $to->email]],
+        ]);
     }
 
     private function findUser(Tenant $tenant, string $email): ?User

@@ -41,6 +41,7 @@ class Tenant extends Model
     {
         return [
             'trial_ends_at' => 'datetime',
+            'owner_user_id' => 'integer',
             'features' => 'array',
             'is_demo' => 'boolean',
         ];

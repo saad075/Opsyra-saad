@@ -78,9 +78,17 @@ class SubscriptionSync
         $updated = 0;
 
         foreach ($response->json('data', []) as $row) {
+            $changes = ['active_employees' => (int) ($row['active_employees'] ?? 0), 'usage_reported_at' => now()];
+
+            // The account owner is the customer contact; it changes when
+            // they hand ownership on inside the app.
+            if (! empty($row['owner']['email'])) {
+                $changes += ['admin_name' => $row['owner']['name'], 'admin_email' => strtolower($row['owner']['email'])];
+            }
+
             $updated += Company::where('country', $country)
                 ->where('client_code', $row['client_code'] ?? null)
-                ->update(['active_employees' => (int) ($row['active_employees'] ?? 0), 'usage_reported_at' => now()]);
+                ->update($changes);
         }
 
         return $updated;

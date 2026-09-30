@@ -19,7 +19,9 @@ use Illuminate\Validation\Rule;
  *   (SLMS360's subscription bridge, per company rather than per install).
  * - usage(): aggregate counts only — how many active staff each company
  *   has, for per-employee pricing. No names, no personal data leave the
- *   country (docs/research/subscription-architecture.md). Also whether
+ *   country (docs/research/subscription-architecture.md), except the
+ *   account owner's name and email: the customer contact Central already
+ *   holds from sign-up, kept current after an ownership transfer. Also whether
  *   this deployment's email is getting out (MailHealth).
  */
 class SubscriptionController extends Controller
@@ -51,10 +53,13 @@ class SubscriptionController extends Controller
 
     public function usage()
     {
-        $data = Tenant::query()->get()->map(fn (Tenant $tenant) => [
+        $data = Tenant::query()->get()->map(fn (Tenant $tenant) => app(TenantContext::class)->runAs($tenant->id, fn () => [
             'client_code' => $tenant->client_code,
-            'active_employees' => app(TenantContext::class)->runAs($tenant->id, fn () => User::where('status', 'active')->count()),
-        ]);
+            'active_employees' => User::where('status', 'active')->count(),
+            // The account owner is the customer's contact, which Central
+            // already holds from sign-up; kept current here after transfers.
+            'owner' => $tenant->owner_user_id ? User::whereKey($tenant->owner_user_id)->first(['name', 'email'])?->only(['name', 'email']) : null,
+        ]));
 
         return response()->json(['status' => true, 'data' => $data, 'mail' => MailHealth::summary()]);
     }

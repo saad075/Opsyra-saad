@@ -94,12 +94,18 @@ function remove(role: RoleWithPermissions) {
 }
 
 const columns: DataTableColumns<RoleWithPermissions> = [
-  { title: 'Role', key: 'name', render: (r) => h('strong', r.name) },
+  {
+    title: 'Role',
+    key: 'name',
+    render: (r) => h('span', [h('strong', r.name), r.is_locked ? h(NTag, { size: 'small', round: true, class: 'lock' }, { default: () => 'Locked' }) : null]),
+  },
   {
     title: 'Can',
     key: 'permissions',
     render: (r) =>
-      r.permissions.length
+      r.is_locked
+        ? h('span', { class: 'can' }, 'Everything, including anything added to Opsyra later. The account owner always has this role.')
+        : r.permissions.length
         ? h('span', { class: 'can' }, r.permissions.map((p) => describe(p.name)).join(' · '))
         : h('span', { class: 'muted' }, 'Nothing beyond everyday use'),
   },
@@ -110,7 +116,9 @@ const columns: DataTableColumns<RoleWithPermissions> = [
     align: 'right',
     width: 150,
     render: (r) =>
-      h(NSpace, { justify: 'end', size: 4 }, {
+      r.is_locked
+        ? null
+        : h(NSpace, { justify: 'end', size: 4 }, {
         default: () => [
           h(NButton, { size: 'small', onClick: () => open(r) }, { default: () => 'Edit' }),
           r.staff_count === 0 ? h(NButton, { size: 'small', quaternary: true, type: 'error', onClick: () => remove(r) }, { default: () => 'Delete' }) : null,
@@ -193,5 +201,9 @@ onMounted(load)
 
 :deep(.can) {
   font-size: 0.9rem;
+}
+
+:deep(.lock) {
+  margin-left: 8px;
 }
 </style>

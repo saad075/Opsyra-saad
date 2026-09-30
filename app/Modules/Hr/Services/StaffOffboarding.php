@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Hr\Exceptions\ManagerReassignmentRequired;
 use App\Modules\Hr\Exceptions\WorkflowStateException;
 use App\Modules\Hr\Models\StaffOffboardRequest;
+use App\Modules\Platform\Services\CompanyOwnership;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -42,6 +43,8 @@ class StaffOffboarding
                 throw new WorkflowStateException('Only an active or not-yet-started staff member can be offboarded.');
             }
 
+            app(CompanyOwnership::class)->ensureCanLeave($staff);
+
             if ($this->hasOpenOffboarding($staff)) {
                 throw new WorkflowStateException('This staff member already has an offboarding pending or scheduled.');
             }
@@ -77,6 +80,9 @@ class StaffOffboarding
     {
         DB::transaction(function () use ($request, $reviewer) {
             $locked = $this->lockPending($request);
+
+            // They may have been made the account owner while this waited.
+            app(CompanyOwnership::class)->ensureCanLeave($locked->staff);
 
             // The replacement manager was valid when the request was made,
             // but may have left or been deactivated while it waited.

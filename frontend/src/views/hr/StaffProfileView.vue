@@ -90,12 +90,13 @@ onMounted(load)
             <p class="muted sub">
               {{ s.designation ?? 'No job title' }}
               <NTag size="small" round :type="statusOf(s.status).type" class="tag">{{ statusOf(s.status).label }}</NTag>
+              <NTag v-if="profile.is_owner" size="small" round type="info" class="tag">Account owner</NTag>
             </p>
           </div>
         </div>
         <NSpace v-if="isHr">
           <NButton v-if="s.status !== 'offboarded'" @click="router.push({ name: 'staff-edit', params: { id: s.id } })">Edit</NButton>
-          <NButton v-if="(s.status === 'active' || s.status === 'pending') && !scheduledExit && !pendingExit && !isSelf" type="error" ghost @click="offboardOpen = true">Offboard</NButton>
+          <NButton v-if="(s.status === 'active' || s.status === 'pending') && !scheduledExit && !pendingExit && !isSelf && !profile.is_owner" type="error" ghost @click="offboardOpen = true">Offboard</NButton>
           <NButton v-if="scheduledExit || pendingExit" @click="cancelExit">Cancel exit</NButton>
           <NButton v-if="s.status === 'offboarded'" type="primary" @click="rehire">Rehire</NButton>
         </NSpace>

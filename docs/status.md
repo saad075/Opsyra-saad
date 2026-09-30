@@ -124,8 +124,9 @@ while the user tries the deployed test system.
    worked on all three (2026-09-29). Email now goes through the Google
    Workspace relay (see "Test deployment" below).
 
-1. **Company account owner.** Today the first Administrator (the sign-up
-   person; Alex Morgan in the demo) is protected by convention only — a
+1. **Company account owner (done in code 2026-09-30, needs deploying).**
+   See `docs/decisions.md`. Was: the first Administrator (the sign-up
+   person; Alex Morgan in the demo) was protected by convention only — a
    company can delete/edit the Administrator role, strip it from its only
    admin, or offboard them, and lock itself out. Add: one owner per company
    (the sign-up admin) who can't be deleted/offboarded or lose Administrator;

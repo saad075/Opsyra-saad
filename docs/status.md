@@ -1,6 +1,6 @@
 # Status — where this stands right now
 
-Last updated 2026-09-24. Read this first when resuming; it's
+Last updated 2026-09-29. Read this first when resuming; it's
 the "what's done, what's next, how to get running again" summary. Details
 live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
 (module → source → what changed), `docs/inventory.md` (the Phase 1 port plan).
@@ -89,7 +89,7 @@ live in `docs/decisions.md` (choices + reasoning), `docs/provenance.md`
 - **Opsyra Central** (`central/`): landing site, pricing structure (per
   country, admin-editable), free-trial sign-up, super-admin subscription
   dashboard, and the nightly-rebuilt live demo company.
-- **Tests: 192 country API + 31 Central + 25 frontend, all passing**; the API ones run against real Postgres 17 + Memurai (not
+- **Tests: 259 country API + 34 Central + 25 frontend, all passing**; the API ones run against real Postgres 17 + Memurai (not
   mocks/sqlite) — this matters because the whole isolation design is a
   Postgres RLS feature that doesn't exist on sqlite.
 
@@ -109,7 +109,20 @@ payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 (ledger is new-build — see Checkpoint 1 decisions).
 
 **Next (user, 2026-09-27): a "post-deployment fixes" batch**, gathered
-while the user tries the deployed test system. First item, agreed:
+while the user tries the deployed test system.
+
+0. **Sign-ups failing (done in code 2026-09-29, needs deploying).** Three
+   trial sign-ups (kindstead, brains, 1234) showed "Setup failed": the US
+   deployment created each company, then crashed sending the welcome email
+   because the Elastic Email account is **out of credit** (SMTP 421 "Not
+   enough credit"); Retry then got 409 "already taken" forever. Fixed:
+   welcome and password-reset emails are queued (`Auth/Jobs/SendSignInLink`);
+   a repeated sign-up for the same company + admin succeeds and re-sends
+   the link; Central has "Resend welcome email"; the US deployment records
+   email failures (`Platform/Support/MailHealth`) and Central's dashboard
+   shows a red alert when a country's email is failing. **After deploying
+   and fixing email: press Retry on the three companies.** Email provider
+   still to decide (see "Test deployment" below).
 
 1. **Company account owner.** Today the first Administrator (the sign-up
    person; Alex Morgan in the demo) is protected by convention only — a
@@ -134,7 +147,20 @@ cPanel server (AlmaLinux 8, PostgreSQL 16, PHP 8.3). GitHub
 `~/repositories/opsyra-deploy`, whose `.cpanel.yml` runs `deploy/deploy.sh`
 (release folders, `opsyra:preflight`, migrations, atomic switch). See
 `docs/deployment.md`. Email goes through Elastic Email SMTP (the account
-SLMS360 uses). Open deployment follow-ups: turn off SSH password logins
+SLMS360 uses), **out of credit since at least 2026-09-28**. **Switched
+2026-09-29 to Google Workspace's SMTP relay** (by server IP, no password;
+WHM SMTP Restrictions disabled, as it redirected the connection to the local
+Exim; see `docs/deployment.md` step 3). The relay test email arrived, in spam.
+Still to do: SPF/DKIM/DMARC at Namecheap, remove the stray SES MX, and
+move SLMS360 off Elastic Email too. The user first asked for a cPanel
+mailbox; that was checked and rejected:
+brainstormertech.com's mail is on Google Workspace (MX), DNS is at
+Namecheap (registrar-servers.com), the SPF record only lists Amazon SES,
+and the server's reverse DNS is a generic web-hosting.com name, so mail
+sent from the server would likely go to spam. Recommended instead: Google
+Workspace SMTP relay (free with the existing Workspace), chosen. Also found: an
+Amazon SES feedback MX on the root domain alongside Google's; that looks
+misconfigured and may lose incoming mail. Open deployment follow-ups: turn off SSH password logins
 (password-guessing seen in the server log); move SLMS360 onto the same
 pipeline later (its email password is in `config/mail.php`).
 

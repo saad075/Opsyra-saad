@@ -72,9 +72,23 @@ Two **A records** pointing at the server's IP:
    **Never** use the `postgres` superuser: it silently switches off the
    separation between companies. The deploy's preflight check refuses to
    run if it detects this.
-3. **Email**: create a mailbox, e.g. `no-reply@brainstormertech.com`
-   (cPanel → *Email Accounts*). Emails are real — test only with addresses
-   you own.
+3. **Email** goes through **Google Workspace's SMTP relay**: free with the
+   existing Workspace, and brainstormertech.com's mail is on Google anyway
+   (a cPanel mailbox would land in spam; see `docs/status.md`). Emails are
+   real, so test only with addresses you own.
+   - Google Admin → Apps → Google Workspace → Gmail → Routing → *SMTP
+     relay service*: allowed senders "Only addresses in my domains"; "Only
+     accept mail from the specified IP addresses" = the server's IP (`/32`);
+     no SMTP authentication; "Require TLS encryption".
+   - WHM → Security Center → **SMTP Restrictions must be Disabled**. When
+     it's on, connections to Google on 25/465/587 are silently handed to
+     the server's own Exim instead ("certificate verify failed",
+     certificate `CN = server1…`).
+   - DNS (Namecheap): SPF `v=spf1 include:_spf.google.com ~all`; Google
+     DKIM (`google._domainkey`, generated in Gmail → *Authenticate email*);
+     `_dmarc` `v=DMARC1; p=none`.
+   - Test from the server:
+     `php artisan tinker --execute="Mail::raw('test', fn (\$m) => \$m->to('you@example.com')->subject('test'));"`
 
 ### 4. cPanel — the two subdomains
 

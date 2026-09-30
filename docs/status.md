@@ -151,8 +151,11 @@ SLMS360 uses), **out of credit since at least 2026-09-28**. **Switched
 2026-09-29 to Google Workspace's SMTP relay** (by server IP, no password;
 WHM SMTP Restrictions disabled, as it redirected the connection to the local
 Exim; see `docs/deployment.md` step 3). The relay test email arrived, in spam.
-Still to do: SPF/DKIM/DMARC at Namecheap, remove the stray SES MX, and
-move SLMS360 off Elastic Email too. The user first asked for a cPanel
+DNS done by the user 2026-09-29 (SPF/DKIM/DMARC, stray SES MX removed).
+SLMS360 moved to the same relay 2026-09-30 (its `config/mail.php` now
+reads `.env`; admin, alis, seventhgen deployed and tested). Gotcha: the
+relay refuses EHLO `[127.0.0.1]` (421 4.7.0), so an app needs
+`MAIL_EHLO_DOMAIN` or a default from APP_URL (Opsyra has the default). The user first asked for a cPanel
 mailbox; that was checked and rejected:
 brainstormertech.com's mail is on Google Workspace (MX), DNS is at
 Namecheap (registrar-servers.com), the SPF record only lists Amazon SES,

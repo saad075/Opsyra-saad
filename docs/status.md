@@ -111,7 +111,7 @@ payroll, Excel engine, then ToddlersApp's accounts/fees/billing/ledger
 **Next (user, 2026-09-27): a "post-deployment fixes" batch**, gathered
 while the user tries the deployed test system.
 
-0. **Sign-ups failing (done in code 2026-09-29, needs deploying).** Three
+0. **Sign-ups failing (fixed and deployed 2026-09-29).** Three
    trial sign-ups (kindstead, brains, 1234) showed "Setup failed": the US
    deployment created each company, then crashed sending the welcome email
    because the Elastic Email account is **out of credit** (SMTP 421 "Not
@@ -120,9 +120,9 @@ while the user tries the deployed test system.
    a repeated sign-up for the same company + admin succeeds and re-sends
    the link; Central has "Resend welcome email"; the US deployment records
    email failures (`Platform/Support/MailHealth`) and Central's dashboard
-   shows a red alert when a country's email is failing. **After deploying
-   and fixing email: press Retry on the three companies.** Email provider
-   still to decide (see "Test deployment" below).
+   shows a red alert when a country's email is failing. Deployed; Retry
+   worked on all three (2026-09-29). Email now goes through the Google
+   Workspace relay (see "Test deployment" below).
 
 1. **Company account owner.** Today the first Administrator (the sign-up
    person; Alex Morgan in the demo) is protected by convention only — a

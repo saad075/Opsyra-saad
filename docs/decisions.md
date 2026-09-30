@@ -2,6 +2,20 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-30 — One permissions cache per company
+
+- **Bug (live):** Spatie caches one "permission → roles" list for the
+  whole app, but roles are tenant rows behind RLS, so the list only held
+  the roles of whichever company's request built it. Every other company's
+  administrators were refused everything (Kindstead's owner could open
+  nothing) until the cache expired. Tests missed it: each test builds its
+  own cache inside one company.
+- **Fix:** `Rbac/Support/TenantPermissionRegistrar` replaces Spatie's
+  registrar (bound in `RbacServiceProvider::boot`, after Spatie's own
+  boot). The cache key and the in-memory list are per tenant; any role or
+  permission change bumps a version in the key, so every company's list
+  is rebuilt on next use. Regression test: `PermissionCacheIsolationTest`.
+
 ## 2026-09-30 — Company account owner
 
 - **Why:** a company could lock itself out: delete or cut down the

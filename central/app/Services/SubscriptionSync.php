@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Models\Company;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
  * Pushes a company's subscription (status, trial end, plan, features) from
  * Central — the source of truth — to its country deployment's enforcement
- * copy, and pulls back aggregate usage (active staff counts).
+ * copy, and pulls back aggregate usage (active staff counts) and whether
+ * the country's email is getting out.
  */
 class SubscriptionSync
 {
@@ -69,6 +71,10 @@ class SubscriptionSync
             throw new RuntimeException("Usage request to {$country} failed: HTTP {$response->status()}");
         }
 
+        if (is_array($mail = $response->json('mail'))) {
+            Cache::forever("country_mail.{$country}", $mail + ['checked_at' => now()->toIso8601String()]);
+        }
+
         $updated = 0;
 
         foreach ($response->json('data', []) as $row) {
@@ -78,5 +84,16 @@ class SubscriptionSync
         }
 
         return $updated;
+    }
+
+    /**
+     * What the country last said about its email (see its MailHealth), as
+     * of the last usage pull — hourly.
+     *
+     * @return array{failing: bool, last_sent_at: ?string, last_failed_at: ?string, last_error: ?string, checked_at: string}|null
+     */
+    public static function mailHealth(string $country): ?array
+    {
+        return Cache::get("country_mail.{$country}");
     }
 }

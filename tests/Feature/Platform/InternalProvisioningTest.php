@@ -3,12 +3,18 @@
 namespace Tests\Feature\Platform;
 
 use App\Models\User;
+use App\Modules\Auth\Jobs\SendSignInLink;
+use App\Modules\Auth\Models\PasswordResetCode;
 use App\Modules\Auth\Models\TenantAccessToken;
 use App\Modules\Auth\Notifications\WelcomeAdminNotification;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Support\MailHealth;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\TestCase;
 
 class InternalProvisioningTest extends TestCase
@@ -94,10 +100,69 @@ class InternalProvisioningTest extends TestCase
         ], json_encode($this->payload(['admin_email' => 'attacker@evil.test'])))->assertUnauthorized();
     }
 
-    public function test_a_code_already_in_use_is_a_conflict(): void
+    public function test_a_code_taken_by_a_different_company_is_a_conflict(): void
     {
         $this->signedPost($this->payload())->assertCreated();
-        $this->signedPost($this->payload(['name' => 'Other']))->assertStatus(409);
+        $this->signedPost($this->payload(['name' => 'Other', 'admin_email' => 'someone@other.test']))->assertStatus(409);
+    }
+
+    public function test_the_signup_succeeds_even_when_the_welcome_email_cannot_be_sent_yet(): void
+    {
+        Queue::fake();
+
+        $this->signedPost($this->payload())->assertCreated();
+
+        $this->assertTrue(Tenant::where('client_code', 'acme')->exists());
+        Queue::assertPushed(SendSignInLink::class, fn ($job) => $job->kind === SendSignInLink::WELCOME && $job->tenantId !== null);
+    }
+
+    public function test_repeating_a_signup_that_already_got_through_succeeds_and_resends_the_welcome(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+
+        // Central lost the first answer and retries, with the email in different case.
+        $this->signedPost($this->payload(['admin_email' => 'ADA@acme.test']))
+            ->assertOk()
+            ->assertJsonPath('data.already_existed', true);
+
+        $this->assertSame(1, Tenant::where('client_code', 'acme')->count());
+        $tenant = Tenant::where('client_code', 'acme')->firstOrFail();
+        $admin = app(TenantContext::class)->runAs($tenant->id, fn () => User::where('email', 'ada@acme.test')->firstOrFail());
+        Notification::assertSentToTimes($admin, WelcomeAdminNotification::class, 2);
+
+        // Only the latest link works.
+        $live = app(TenantContext::class)->runAs($tenant->id, fn () => PasswordResetCode::where('user_id', $admin->id)->whereNull('used_at')->count());
+        $this->assertSame(1, $live);
+    }
+
+    public function test_central_can_resend_the_welcome_email(): void
+    {
+        $this->signedPost($this->payload())->assertCreated();
+
+        $this->signedPost(['admin_email' => 'ada@acme.test'], path: '/api/internal/tenants/acme/welcome')->assertStatus(202);
+        $this->signedPost(['admin_email' => 'nobody@acme.test'], path: '/api/internal/tenants/acme/welcome')->assertNotFound();
+        $this->postJson('/api/internal/tenants/acme/welcome', ['admin_email' => 'ada@acme.test'])->assertUnauthorized();
+
+        $tenant = Tenant::where('client_code', 'acme')->firstOrFail();
+        $admin = app(TenantContext::class)->runAs($tenant->id, fn () => User::where('email', 'ada@acme.test')->firstOrFail());
+        Notification::assertSentToTimes($admin, WelcomeAdminNotification::class, 2);
+    }
+
+    public function test_usage_reports_whether_email_is_getting_out(): void
+    {
+        Cache::forget('platform.mail_health');
+        $this->assertFalse($this->signedPost([], path: '/api/internal/usage')->json('mail.failing'));
+
+        report(new TransportException('Expected response code "250" but got code "421": Not enough credit.'));
+
+        $mail = $this->signedPost([], path: '/api/internal/usage')->json('mail');
+        $this->assertTrue($mail['failing']);
+        $this->assertStringContainsString('Not enough credit', $mail['last_error']);
+
+        $this->travel(1)->seconds();
+        MailHealth::recordSent();
+
+        $this->assertFalse($this->signedPost([], path: '/api/internal/usage')->json('mail.failing'));
     }
 
     public function test_without_a_configured_secret_the_endpoint_is_closed(): void
@@ -140,6 +205,7 @@ class InternalProvisioningTest extends TestCase
 
         $acme = collect($response->json('data'))->firstWhere('client_code', 'acme');
         $this->assertSame(['client_code' => 'acme', 'active_employees' => 1], $acme);
+        $this->assertSame(['failing', 'last_sent_at', 'last_failed_at', 'last_error'], array_keys($response->json('mail')));
     }
 
     public function test_subscription_updates_need_a_valid_signature_too(): void

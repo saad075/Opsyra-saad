@@ -46,6 +46,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('companies/{company}/plan', [CompanyController::class, 'changePlan'])->name('companies.plan');
         Route::post('companies/{company}/status', [CompanyController::class, 'setStatus'])->name('companies.status');
         Route::post('companies/{company}/retry', [CompanyController::class, 'retry'])->name('companies.retry');
+        Route::post('companies/{company}/resend-welcome', [CompanyController::class, 'resendWelcome'])->name('companies.resend-welcome');
         Route::get('pricing/{country?}', [PricingController::class, 'edit'])->name('pricing');
         Route::post('pricing/{country}', [PricingController::class, 'update'])->name('pricing.update');
         Route::post('pricing/{country}/publish', [PricingController::class, 'publish'])->name('pricing.publish');

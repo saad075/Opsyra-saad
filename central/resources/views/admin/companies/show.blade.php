@@ -54,12 +54,21 @@
             @if (in_array($company->status, ['provisioning_failed']) || $company->sync_error)
                 <form method="POST" action="{{ route('admin.companies.retry', $company) }}" class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                     @csrf
-                    <p class="text-sm font-semibold text-amber-900">{{ $company->status === 'provisioning_failed' ? 'The workspace wasn’t created.' : 'The country copy is out of date.' }}</p>
+                    <p class="text-sm font-semibold text-amber-900">{{ $company->status === 'provisioning_failed' ? 'Setup didn’t finish.' : 'The country copy is out of date.' }}</p>
                     <button class="mt-3 w-full rounded-lg bg-amber-600 py-2 font-semibold text-white hover:bg-amber-700">{{ $company->status === 'provisioning_failed' ? 'Retry setup' : 'Retry sync' }}</button>
                 </form>
             @endif
 
             @unless (in_array($company->status, ['provisioning', 'provisioning_failed']))
+                @unless ($company->is_demo)
+                    <form method="POST" action="{{ route('admin.companies.resend-welcome', $company) }}" class="rounded-2xl border border-line bg-white p-5">
+                        @csrf
+                        <p class="text-sm font-semibold">Welcome email</p>
+                        <p class="mt-1 text-xs text-muted">Sends {{ $company->admin_email }} a new “set your password” link. Any earlier link stops working.</p>
+                        <button class="mt-3 w-full rounded-lg border border-line py-2 font-semibold hover:bg-canvas">Resend welcome email</button>
+                    </form>
+                @endunless
+
                 <form method="POST" action="{{ route('admin.companies.extend-trial', $company) }}" class="rounded-2xl border border-line bg-white p-5">
                     @csrf
                     <label class="text-sm font-semibold">Extend trial by

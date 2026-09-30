@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Services\CountryDeployment;
+use App\Services\SubscriptionSync;
 
 /**
  * The subscription dashboard: how many companies, in what state, where,
@@ -57,6 +59,12 @@ class DashboardController extends Controller
             'trialsExpired' => $companies->where('status', 'trial')->filter(fn (Company $c) => $c->trial_ends_at?->isPast()),
             'needsAttention' => $companies->filter(fn (Company $c) => $c->status === 'provisioning_failed' || $c->sync_error),
             'recent' => $companies->sortByDesc('created_at')->take(8),
+            // Countries whose email isn't getting out: no welcome emails, no
+            // password resets. Found hourly with the usage pull.
+            'mailProblems' => collect(config('opsyra.countries'))
+                ->filter(fn ($info, $code) => CountryDeployment::isConnected($code))
+                ->map(fn ($info, $code) => ['name' => $info['name']] + (SubscriptionSync::mailHealth($code) ?? []))
+                ->filter(fn (array $health) => $health['failing'] ?? false),
         ]);
     }
 }

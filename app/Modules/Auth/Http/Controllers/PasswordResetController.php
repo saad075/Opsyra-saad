@@ -4,13 +4,12 @@ namespace App\Modules\Auth\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Auth\Jobs\SendSignInLink;
 use App\Modules\Auth\Models\PasswordResetCode;
-use App\Modules\Auth\Notifications\PasswordResetNotification;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -36,18 +35,11 @@ class PasswordResetController extends Controller
         // The demo's shared account can't be reset (and its addresses are
         // on the reserved .example domain anyway) — same answer either way.
         if ($user && ! $tenant->is_demo && ! in_array($user->status, ['pending_approval', 'offboarded'], true)) {
-            app(TenantContext::class)->runAs($tenant->id, function () use ($user, $tenant) {
-                $token = Str::random(64);
-
-                // One live reset at a time: asking again replaces the old one.
-                PasswordResetCode::where('user_id', $user->id)->whereNull('used_at')->delete();
-                PasswordResetCode::create([
-                    'user_id' => $user->id,
-                    'token_hash' => hash('sha256', $token),
-                    'expires_at' => now()->addMinutes(self::EXPIRES_MINUTES),
-                ]);
-
-                $user->notify(new PasswordResetNotification($token, $tenant->client_code, self::EXPIRES_MINUTES));
+            // Queued, so a mail problem can't turn this into an error that
+            // tells the caller the account exists. One live reset at a
+            // time: asking again replaces the old link (SendSignInLink).
+            app(TenantContext::class)->runAs($tenant->id, function () use ($user) {
+                SendSignInLink::dispatch($user->id, SendSignInLink::RESET, self::EXPIRES_MINUTES);
             });
         }
 

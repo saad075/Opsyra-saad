@@ -109,6 +109,52 @@ class SubscriptionDashboardTest extends TestCase
         $this->assertSame(42, $company->fresh()->active_employees);
     }
 
+    public function test_a_country_whose_email_is_failing_is_flagged_on_the_dashboard(): void
+    {
+        Http::fake(['us-api.opsyra.test/*' => Http::sequence()
+            ->push(['status' => true, 'data' => [], 'mail' => [
+                'failing' => true, 'last_sent_at' => null, 'last_failed_at' => now()->toIso8601String(), 'last_error' => '421 Error: Not enough credit.',
+            ]])
+            // Fixed by the next hourly check.
+            ->push(['status' => true, 'data' => [], 'mail' => [
+                'failing' => false, 'last_sent_at' => now()->toIso8601String(), 'last_failed_at' => null, 'last_error' => null,
+            ]])]);
+
+        $this->artisan('companies:sync-usage')->assertSuccessful();
+
+        $this->actingAs($this->admin)->get('/admin')
+            ->assertSee('Email isn’t going out from United States.')
+            ->assertSee('Not enough credit');
+
+        $this->artisan('companies:sync-usage')->assertSuccessful();
+
+        $this->actingAs($this->admin)->get('/admin')->assertDontSee('Email isn’t going out');
+    }
+
+    public function test_the_welcome_email_can_be_resent(): void
+    {
+        Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => true], 202)]);
+        $company = $this->company();
+
+        $this->actingAs($this->admin)->get("/admin/companies/{$company->id}")->assertSee('Resend welcome email');
+        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/resend-welcome")->assertSessionHas('status');
+
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), "/api/internal/tenants/{$company->client_code}/welcome")
+            && $r['admin_email'] === $company->admin_email);
+    }
+
+    public function test_retrying_a_setup_the_country_already_finished_marks_it_ready(): void
+    {
+        // The country created it last time but the answer was lost; now it says so.
+        Http::fake(['us-api.opsyra.test/*' => Http::response(['status' => true, 'data' => ['already_existed' => true]], 200)]);
+        $company = $this->company(['status' => 'provisioning_failed', 'provision_error' => 'HTTP 500: Server Error']);
+
+        $this->actingAs($this->admin)->post("/admin/companies/{$company->id}/retry")->assertSessionHas('status');
+
+        $this->assertSame('trial', $company->fresh()->status);
+        $this->assertNull($company->fresh()->provision_error);
+    }
+
     public function test_companies_list_filters_and_searches(): void
     {
         $this->company(['name' => 'Alpha Trading', 'status' => 'active']);

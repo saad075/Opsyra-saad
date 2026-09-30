@@ -7,6 +7,18 @@
         <a href="{{ route('admin.companies') }}" class="text-sm font-semibold text-brand-600 hover:text-brand-700">All companies →</a>
     </div>
 
+    @foreach ($mailProblems as $health)
+        <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900">
+            <p class="font-bold">Email isn’t going out from {{ $health['name'] }}.</p>
+            <p class="mt-1 text-sm">New companies there won’t get their welcome email and nobody can reset a password. Fix the email account, then use “Resend welcome email” on any company that signed up meanwhile.</p>
+            <p class="mt-2 text-sm">
+                Last error{{ $health['last_failed_at'] ? ' ('.\Illuminate\Support\Carbon::parse($health['last_failed_at'])->diffForHumans().')' : '' }}: <span class="font-mono">{{ $health['last_error'] }}</span><br>
+                Last email that went out: {{ $health['last_sent_at'] ? \Illuminate\Support\Carbon::parse($health['last_sent_at'])->diffForHumans() : 'none recorded' }}.
+                Checked {{ \Illuminate\Support\Carbon::parse($health['checked_at'])->diffForHumans() }}.
+            </p>
+        </div>
+    @endforeach
+
     {{-- KPI cards --}}
     @php
         $kpis = [
@@ -74,7 +86,7 @@
                 @foreach ($needsAttention as $company)
                     <li class="flex flex-wrap items-center justify-between gap-2">
                         <span><a href="{{ route('admin.companies.show', $company) }}" class="font-semibold underline">{{ $company->name }}</a>
-                            — {{ $company->status === 'provisioning_failed' ? 'workspace wasn’t created' : 'country copy out of date' }}</span>
+                            — {{ $company->status === 'provisioning_failed' ? 'setup didn’t finish' : 'country copy out of date' }}</span>
                         <form method="POST" action="{{ route('admin.companies.retry', $company) }}">@csrf<button class="rounded-lg bg-white px-3 py-1 text-sm font-semibold shadow-sm hover:bg-amber-100">Retry</button></form>
                     </li>
                 @endforeach

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Models\TenantAccessToken;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Support\MailHealth;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,8 @@ use Illuminate\Validation\Rule;
  *   (SLMS360's subscription bridge, per company rather than per install).
  * - usage(): aggregate counts only — how many active staff each company
  *   has, for per-employee pricing. No names, no personal data leave the
- *   country (docs/research/subscription-architecture.md).
+ *   country (docs/research/subscription-architecture.md). Also whether
+ *   this deployment's email is getting out (MailHealth).
  */
 class SubscriptionController extends Controller
 {
@@ -54,6 +56,6 @@ class SubscriptionController extends Controller
             'active_employees' => app(TenantContext::class)->runAs($tenant->id, fn () => User::where('status', 'active')->count()),
         ]);
 
-        return response()->json(['status' => true, 'data' => $data]);
+        return response()->json(['status' => true, 'data' => $data, 'mail' => MailHealth::summary()]);
     }
 }

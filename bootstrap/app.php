@@ -2,10 +2,12 @@
 
 use App\Modules\Auth\Http\Middleware\EnsureAccountIsUsable;
 use App\Modules\Platform\Http\Middleware\ProtectDemoCompany;
+use App\Modules\Platform\Support\MailHealth;
 use App\Modules\Tenancy\Http\Middleware\ResolveTenantFromUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,5 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', ProtectDemoCompany::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Let Opsyra Central see when email stops going out (MailHealth).
+        // Still logged as usual.
+        $exceptions->report(function (TransportExceptionInterface $e) {
+            MailHealth::recordFailure($e);
+        });
     })->create();

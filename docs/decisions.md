@@ -2,6 +2,28 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-09-29 — Sign-ups must not depend on email
+
+- **Why:** the first real trial sign-ups all showed "Setup failed". The
+  US deployment had created each company, then sending the welcome email
+  failed (the SMTP account was out of credit), the request returned 500,
+  and Central marked the sign-up failed. A retry then got 409 "code
+  taken", so it could never recover.
+- **Emails that carry a sign-in link are queued** (`SendSignInLink`,
+  3 tries, 1 then 5 minutes apart). It carries ids, not models: a queued
+  notification restores its User before the tenant context exists and
+  RLS would hide it. The token is minted when the email is sent.
+  Forgot-password is queued too, which also stops a mail error from
+  revealing that an account exists.
+- **Provisioning is repeatable:** the same client code with the same admin
+  email is treated as success (200, `already_existed`) and re-sends the
+  link. A different admin email is still 409.
+- **Email health is reported to Central** (`MailHealth`: last send, last
+  failure, recorded from `MessageSent` and from reported mailer transport
+  exceptions) with the hourly usage pull, and shown as a red dashboard
+  alert. It is per country, not per company, because an outage affects
+  everyone.
+
 ## 2026-09-26 — Attendance stages B–D: visits, payroll link, screens
 
 - **Visits (home care)** are part of the Attendance module: visit locations

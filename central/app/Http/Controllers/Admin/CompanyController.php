@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Plan;
 use App\Services\CompanyProvisioner;
+use App\Services\CountryDeployment;
 use App\Services\SubscriptionSync;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 /**
  * Companies list and per-company management. Every change is saved here
@@ -79,10 +81,30 @@ class CompanyController extends Controller
         if ($company->status === 'provisioning_failed') {
             $ok = $provisioner->provision($company);
 
-            return back()->with($ok ? 'status' : 'warning', $ok ? 'Workspace created. The admin has been emailed.' : 'Still failing: '.$company->provision_error);
+            return back()->with($ok ? 'status' : 'warning', $ok ? "Workspace ready. A welcome email is on its way to {$company->admin_email}." : 'Still failing: '.$company->provision_error);
         }
 
         return $this->pushed($company, $sync, 'Country copy updated.');
+    }
+
+    /** A fresh "set your password" link for the administrator; the old one stops working. */
+    public function resendWelcome(Company $company)
+    {
+        abort_if(in_array($company->status, ['provisioning', 'provisioning_failed'], true) || $company->is_demo, 404);
+
+        try {
+            $response = CountryDeployment::for($company->country)->post("tenants/{$company->client_code}/welcome", ['admin_email' => $company->admin_email]);
+        } catch (RuntimeException $e) {
+            report($e);
+
+            return back()->with('warning', "Couldn’t ask the {$company->countryName()} deployment: {$e->getMessage()}");
+        }
+
+        if (! $response->successful()) {
+            return back()->with('warning', "The {$company->countryName()} deployment refused: HTTP {$response->status()}: ".($response->json('message') ?? 'no message'));
+        }
+
+        return back()->with('status', "A new welcome email is on its way to {$company->admin_email}.");
     }
 
     private function pushed(Company $company, SubscriptionSync $sync, string $message)

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 // Server-to-server only: Opsyra Central, signed with the shared secret.
 Route::prefix('internal')->middleware([VerifyCentralSignature::class, 'throttle:120,1'])->group(function () {
     Route::post('tenants', [TenantController::class, 'store']);
+    Route::post('tenants/{clientCode}/welcome', [TenantController::class, 'resendWelcome']);
     Route::post('tenants/{clientCode}/subscription', [SubscriptionController::class, 'update']);
     Route::post('usage', [SubscriptionController::class, 'usage']);
 });

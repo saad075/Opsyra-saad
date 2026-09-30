@@ -1,0 +1,737 @@
+<title>Opsyra Staff App API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a developer reference. Sticky contents rail on wide screens, one column on phones;
+   every endpoint is a block with a method stamp, its rules table and a real response. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #16202a;
+  --muted: #5b6875;
+  --line: #dfe4e8;
+  --brand: #0e6e62;
+  --brand-soft: #e3f1ee;
+  --code-bg: #f0f3f5;
+  --get: #1f5fa8;
+  --get-soft: #e5eef8;
+  --post: #0e6e62;
+  --post-soft: #e3f1ee;
+  --warn: #8a5a00;
+  --warn-soft: #fbf1dc;
+  --font-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1519; --surface: #151d22; --ink: #e4eaee; --muted: #9aa8b3; --line: #26323a;
+    --brand: #4cc2ae; --brand-soft: #143530; --code-bg: #1b252b;
+    --get: #7fb2ec; --get-soft: #172a3f; --post: #4cc2ae; --post-soft: #143530;
+    --warn: #e7b85c; --warn-soft: #33290f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1519; --surface: #151d22; --ink: #e4eaee; --muted: #9aa8b3; --line: #26323a;
+  --brand: #4cc2ae; --brand-soft: #143530; --code-bg: #1b252b;
+  --get: #7fb2ec; --get-soft: #172a3f; --post: #4cc2ae; --post-soft: #143530;
+  --warn: #e7b85c; --warn-soft: #33290f; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.55; padding-inline: 16px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; padding-block: 40px 80px; }
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 24px 56px; } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 0.92rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+@media (max-width: 900px) { nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--surface); } }
+nav.toc p { font-family: var(--font-display); font-weight: 700; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+nav.toc p:first-child { margin-top: 0; }
+nav.toc a { display: block; color: var(--ink); text-decoration: none; padding: 3px 0; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--brand); }
+
+main { min-width: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.3rem; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.01em; }
+h2 { font-size: 1.55rem; font-weight: 800; margin: 56px 0 12px; padding-top: 8px; scroll-margin-top: 20px; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 28px 0 8px; scroll-margin-top: 20px; }
+p, li { max-width: 70ch; }
+a { color: var(--brand); }
+code { font-family: var(--font-mono); font-size: 0.84em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.lede { font-size: 1.12rem; color: var(--muted); margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: 0.92rem; color: var(--muted); }
+.meta strong { color: var(--ink); font-weight: 600; }
+.eyebrow { font-family: var(--font-display); font-weight: 700; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); margin: 0 0 10px; }
+
+.servers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 16px 0; }
+.server { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.server b { font-family: var(--font-display); display: block; margin-bottom: 4px; }
+.server code { display: inline-block; margin: 4px 0; }
+.server span { font-size: 0.93rem; color: var(--muted); }
+
+.note { background: var(--warn-soft); color: var(--ink); border-radius: 8px; padding: 12px 16px; margin: 14px 0; max-width: 78ch; }
+.note b { color: var(--warn); }
+
+.tablewrap { overflow-x: auto; margin: 10px 0 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); }
+td:first-child { white-space: nowrap; }
+td code { white-space: nowrap; }
+
+pre { font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.5; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; tab-size: 2; }
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+
+.ep { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px 6px; margin: 18px 0; min-width: 0; scroll-margin-top: 20px; }
+.ep-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.method { font-family: var(--font-mono); font-weight: 600; font-size: 0.78rem; padding: 3px 8px; border-radius: 5px; letter-spacing: 0.04em; }
+.GET { color: var(--get); background: var(--get-soft); }
+.POST { color: var(--post); background: var(--post-soft); }
+.path { font-family: var(--font-mono); font-weight: 600; font-size: 0.98rem; overflow-wrap: anywhere; }
+.ep-head .who { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
+@media (max-width: 600px) { .ep-head .who { margin-left: 0; width: 100%; } }
+.ep > p:first-of-type { margin-top: 10px; }
+.label { font-family: var(--font-display); font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; display: grid; gap: 10px; margin: 14px 0; }
+.steps li { counter-increment: s; position: relative; padding-left: 40px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-family: var(--font-display); font-weight: 800; display: grid; place-items: center; font-size: 0.9rem; }
+
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 14px 0; }
+.mode { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.mode code { font-weight: 600; }
+.mode p { margin: 6px 0 0; font-size: 0.95rem; }
+
+.appendix h3 { margin-top: 22px; }
+.appendix ul { padding-left: 18px; margin: 6px 0; }
+.appendix li { font-size: 0.95rem; }
+footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <p>Start here</p>
+  <a href="#overview">Overview</a>
+  <a href="#conventions">Requests and responses</a>
+  <a href="#signin">Signing in</a>
+  <a href="#errors">Errors and limits</a>
+  <a href="#modes">Which screens a person gets</a>
+  <p>Endpoints</p>
+  <a href="#ep-account">Account</a>
+  <a href="#ep-attendance">Attendance</a>
+  <a href="#ep-visits">Home-care visits</a>
+  <a href="#ep-pay">Pay</a>
+  <a href="#ep-tasks">Tasks</a>
+  <a href="#ep-profile">Profile and branches</a>
+  <p>Reference</p>
+  <a href="#values">Status values</a>
+  <a href="#notyet">Not available yet</a>
+  <a href="#testing">Testing</a>
+  <a href="#appendix">Other endpoints</a>
+</nav>
+
+<main>
+<p class="eyebrow">BrainStormers · Opsyra</p>
+<h1>Opsyra Staff App API</h1>
+<p class="lede">What the staff mobile app needs from the Opsyra servers: signing in, clocking in and out, home-care visits, payslips and tasks.</p>
+<div class="meta">
+  <span><strong>Version</strong> 1.0</span>
+  <span><strong>Date</strong> 30 September 2026</span>
+  <span><strong>For</strong> the mobile app developer</span>
+  <span><strong>Contact</strong> BrainStormers Technologies</span>
+</div>
+
+<h2 id="overview">Overview</h2>
+<p>Opsyra runs one server per country. Each company's data lives only on its own country's server. The app talks to two places:</p>
+<div class="servers">
+  <div class="server"><b>Central (lookup only)</b><code>https://opsyra.brainstormertech.com/api</code><br><span>Turns the company code a person types into the address of their country server. Called once, at first sign-in.</span></div>
+  <div class="server"><b>Country server (everything else)</b><code>https://us.opsyra.brainstormertech.com/api</code><br><span>The United States server today. The UK, Oman and Pakistan will get their own. Never hard-code this; use the address Central returns.</span></div>
+</div>
+<p>Every endpoint in this guide acts only for the signed-in person. Someone can only see and change their own attendance, visits, payslips and tasks. The server checks this on every call, so the app doesn't need its own permission logic. <code>/auth/me</code> also returns the person's permissions if you later add manager screens.</p>
+
+<h2 id="conventions">Requests and responses</h2>
+<div class="tablewrap"><table>
+  <tr><th>Topic</th><th>Rule</th></tr>
+  <tr><td>Headers</td><td>Send <code>Accept: application/json</code> on every request. Without it, validation errors come back as a web redirect instead of JSON. Send <code>Content-Type: application/json</code> with a JSON body on POSTs.</td></tr>
+  <tr><td>Signed-in calls</td><td><code>Authorization: Bearer &lt;token&gt;</code> using the token from <code>/auth/login</code>.</td></tr>
+  <tr><td>Methods</td><td>Reads are <code>GET</code> with query parameters. Everything that changes something is <code>POST</code>, including some lookups by id (for example <code>/payroll/payslips/show</code>).</td></tr>
+  <tr><td>Response shape</td><td><code>{"status": true, "message": "…", "data": …}</code>. Show <code>message</code> to the person after an action; it's written for them.</td></tr>
+  <tr><td>Dates</td><td>Plain dates are <code>YYYY-MM-DD</code> in the company's local calendar (a "day" at work means the local day).</td></tr>
+  <tr><td>Times</td><td>Attendance and visit times are ISO 8601 with the company's local offset, e.g. <code>2026-09-30T09:00:00-05:00</code>. Responses also give the <code>timezone</code> name. Record timestamps elsewhere (payroll, <code>created_at</code>) are UTC, e.g. <code>2026-09-27T00:05:51.000000Z</code>.</td></tr>
+  <tr><td>Money</td><td>Numbers in the currency's main unit (dollars, not cents), with a <code>currency</code> code next to them. They can have decimals.</td></tr>
+  <tr><td>Location</td><td>Send <code>latitude</code> and <code>longitude</code> as decimal degrees and <code>accuracy_m</code> as whole metres. Location is never a reason to refuse a clock-in or check-in: if the person is far away or has no signal, the action still succeeds and is flagged for a manager to review.</td></tr>
+</table></div>
+
+<h2 id="signin">Signing in</h2>
+<ol class="steps">
+  <li><b>Look up the company.</b> The person types their company code (for example <code>brains</code>). Call Central's <code>POST /resolve</code>. Store the returned <code>api_base_url</code> with the code, and use it for everything below.</li>
+  <li><b>Sign in.</b> <code>POST {api_base_url}/auth/login</code> with the code, email and password. Store the token in the Keychain (iOS) or Keystore (Android).</li>
+  <li><b>Check for a forced password change.</b> If <code>must_change_password</code> is true, show only a change-password screen and call <code>/auth/change-password</code>. Until then, every other call returns 403 with <code>password_change_required</code>.</li>
+  <li><b>Load the person.</b> <code>GET /auth/me</code>, then <code>GET /attendance/today</code>. Its <code>attendance_mode</code> decides the home screen (see <a href="#modes">below</a>).</li>
+</ol>
+<p>Tokens don't expire today. They end when the person signs out, changes their password on another device, leaves the company, or the company is suspended. Whenever any call returns 401, clear the token and go back to sign-in.</p>
+<p>"Forgot password" sends an email whose link opens the Opsyra website, so the app only needs to call <code>/auth/forgot-password</code> and show the message. The reset itself happens in the browser.</p>
+
+<h2 id="errors">Errors and limits</h2>
+<div class="tablewrap"><table>
+  <tr><th>Status</th><th>Meaning</th><th>What the app should do</th></tr>
+  <tr><td><code>401</code></td><td><code>{"message": "Unauthenticated."}</code>. Missing, wrong or revoked token.</td><td>Clear the token; show sign-in.</td></tr>
+  <tr><td><code>403</code></td><td><code>{"status": false, "message": "…"}</code>. Not allowed: account not active, company suspended, or not your record. With <code>"password_change_required": true</code> the person must change their password first.</td><td>Show the message. For <code>password_change_required</code>, open the change-password screen.</td></tr>
+  <tr><td><code>404</code></td><td>Unknown company code (Central) or record not found.</td><td>Show the message.</td></tr>
+  <tr><td><code>409</code></td><td><code>{"status": false, "message": "…"}</code>. A rule refused the action, e.g. "You're already clocked in." or "This visit isn't due now — it's planned for 30 Sep, 14:00."</td><td>Show the message as it is. Don't retry automatically.</td></tr>
+  <tr><td><code>422</code></td><td>Validation. <code>{"message": "…", "errors": {"field": ["…"]}}</code>. Wrong sign-in details also come back as 422 on <code>email</code>.</td><td>Show each error under its field.</td></tr>
+  <tr><td><code>429</code></td><td>Too many attempts. The message says how many seconds to wait.</td><td>Show the message; disable the button for that long.</td></tr>
+</table></div>
+<p>Limits: 30 requests a minute per device for sign-in, forgot-password and the Central lookup. Five failed passwords in a minute for one account locks that account's sign-in for a minute.</p>
+
+<h2 id="modes">Which screens a person gets</h2>
+<p>Each person has an <code>attendance_mode</code>, set by HR and returned by <code>/attendance/today</code> and <code>/attendance/my-schedule</code>:</p>
+<div class="modes">
+  <div class="mode"><code>schedule</code><p>Office and shift staff. Home screen: a clock in / clock out button, today's hours, this month's attendance.</p></div>
+  <div class="mode"><code>visits</code><p>Home-care workers. Home screen: today's client visits, each with check in / check out. Clock in/out is refused for them.</p></div>
+  <div class="mode"><code>not_tracked</code><p>Attendance is off for this person. Hide attendance; show pay, tasks and profile.</p></div>
+</div>
+<p>Everyone gets payslips, salary queries, tasks and their profile.</p>
+
+<!-- ================= ACCOUNT ================= -->
+<h2 id="ep-account">Account</h2>
+
+<div class="ep" id="resolve">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">https://opsyra.brainstormertech.com/api/resolve</span><span class="who">Public · Central</span></div>
+  <p>Finds the country server for a company code. Spaces and capitals are ignored.</p>
+  <p class="label">Body</p>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>client_code</code></td><td>Required, text up to 50 characters.</td></tr></table></div>
+  <p class="label">Response 200</p>
+<pre><code>{
+  "status": true,
+  "data": {
+    "client_code": "brains",
+    "country": "us",
+    "api_base_url": "https://us.opsyra.brainstormertech.com/api"
+  }
+}</code></pre>
+  <p>404: "We couldn't find a company with that code." · 403: the company's account is suspended.</p>
+</div>
+
+<div class="ep" id="login">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/auth/login</span><span class="who">Public</span></div>
+  <p class="label">Body</p>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>client_code</code></td><td>Required. The company code.</td></tr>
+    <tr><td><code>email</code></td><td>Required, email.</td></tr>
+    <tr><td><code>password</code></td><td>Required.</td></tr>
+    <tr><td><code>device_name</code></td><td>Optional, up to 255 characters, e.g. <code>"Ama's iPhone 15"</code>. Shown to HR in the sign-in history. Please send it.</td></tr></table></div>
+  <p class="label">Response 200</p>
+<pre><code>{
+  "status": true,
+  "message": "Logged in.",
+  "data": { "token": "57|kJ3v…", "must_change_password": false }
+}</code></pre>
+  <p>422 on <code>email</code>: "These details don't match our records." (the same answer whether the email or the password is wrong) · 429 after repeated failures · 403 for a suspended company or an account that isn't active.</p>
+</div>
+
+<div class="ep" id="me">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/auth/me</span><span class="who">Signed in</span></div>
+  <p>Who is signed in, their company, and what they're allowed to do. Works even while a password change is pending.</p>
+<pre><code>{
+  "status": true,
+  "message": "Current user",
+  "data": {
+    "user": { "id": 339, "name": "Olivia Novak", "email": "olivia.novak@demo-company.example",
+              "designation": "Software Engineer", "avatar": null, "status": "active" },
+    "must_change_password": false,
+    "is_owner": false,
+    "company": { "name": "Demo Company", "client_code": "demo", "country": "us", "is_demo": true },
+    "roles": [],
+    "permissions": []
+  }
+}</code></pre>
+  <p><code>avatar</code> is a full image URL or null; show initials when it's null.</p>
+</div>
+
+<div class="ep" id="change-password">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/auth/change-password</span><span class="who">Signed in</span></div>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>current_password</code></td><td>Required.</td></tr>
+    <tr><td><code>password</code></td><td>Required. At least 10 characters with letters and numbers; different from the current one.</td></tr>
+    <tr><td><code>password_confirmation</code></td><td>Required, same as <code>password</code>.</td></tr></table></div>
+  <p>200 <code>"Password changed."</code> The current token keeps working; every other device is signed out.</p>
+</div>
+
+<div class="ep" id="logout">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/auth/logout</span><span class="who">Signed in</span></div>
+  <p>Ends this device's token. No body. 200 <code>"Logged out."</code></p>
+</div>
+
+<div class="ep" id="forgot">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/auth/forgot-password</span><span class="who">Public</span></div>
+  <p>Body: <code>client_code</code>, <code>email</code>. Always answers 200 with "If that account exists, we've emailed instructions to reset the password." so it can't be used to find out who works where. The email arrives within about a minute; the link is valid for 60 minutes and opens the Opsyra website.</p>
+</div>
+
+<!-- ================= ATTENDANCE ================= -->
+<h2 id="ep-attendance">Attendance</h2>
+<p>For people in <code>schedule</code> mode.</p>
+
+<div class="ep" id="att-today">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/attendance/today</span><span class="who">Signed in</span></div>
+  <p>Everything the clock screen needs: what's expected today, what's been clocked, whether the next tap is in or out, and the branches the person can clock at. After a night shift that started yesterday, <code>date</code> stays on yesterday until they clock out.</p>
+<pre><code>{
+  "status": true,
+  "message": "Today",
+  "data": {
+    "date": "2026-09-30",
+    "timezone": "America/Chicago",
+    "attendance_mode": "schedule",
+    "expected": {
+      "kind": "work",
+      "date": "2026-09-30",
+      "timezone": "America/Chicago",
+      "schedule": { "id": 12, "name": "Standard week (Mon–Fri)" },
+      "start": "2026-09-30T09:00:00-05:00",
+      "end": "2026-09-30T17:00:00-05:00",
+      "required_minutes": 420,
+      "holiday": null
+    },
+    "day": null,
+    "next_action": "in",
+    "branches": [
+      { "id": 43, "name": "Austin", "latitude": 30.2653, "longitude": -97.747, "geofence_radius_m": 200 }
+    ]
+  }
+}</code></pre>
+  <p><code>expected.kind</code>: <code>work</code>, <code>day_off</code>, <code>holiday</code> (with its name in <code>holiday</code>), <code>visits</code>, or <code>not_tracked</code>. <code>day</code> is null until the first clock-in, then it's a <a href="#day-object">day object</a>.</p>
+</div>
+
+<div class="ep" id="att-clock">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/attendance/clock</span><span class="who">Signed in</span></div>
+  <p>Clock in or out. Leave out <code>type</code> and the server does the next thing (in if not clocked in, otherwise out).</p>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>type</code></td><td>Optional: <code>in</code> or <code>out</code>. If sent and it doesn't match, 409.</td></tr>
+    <tr><td><code>branch_id</code></td><td>Optional. One of the person's branches from <code>/attendance/today</code>; ask only if they have more than one.</td></tr>
+    <tr><td><code>latitude</code>, <code>longitude</code></td><td>Optional but please send; both or neither.</td></tr>
+    <tr><td><code>accuracy_m</code></td><td>Optional, whole metres.</td></tr>
+    <tr><td><code>device</code></td><td>Optional, e.g. <code>"iPhone 15 / iOS 18.1"</code>.</td></tr>
+    <tr><td><code>source</code></td><td>Send <code>"app"</code>.</td></tr></table></div>
+  <p class="label">Response 201</p>
+  <p>The updated <a href="#day-object">day object</a> plus <code>"punch_type": "in"</code> or <code>"out"</code>. The message is "Clocked in." or "Clocked out.", with "You're 850 m from the branch, so HR will review this." added when the location was outside the branch's radius.</p>
+  <p class="label">Refused (409)</p>
+  <p>"You check in at each visit instead — open today's visits." (visits mode) · "Attendance isn't tracked for you. Ask HR if that's wrong." · "You're already clocked in." · "You're not clocked in."</p>
+</div>
+
+<div class="ep" id="day-object">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/attendance/month?month=2026-09</span><span class="who">Signed in</span></div>
+  <p>One month (this month if <code>month</code> is left out), newest day first, with totals. Each entry is a <b>day object</b>, the same shape <code>/attendance/today</code> and <code>/attendance/clock</code> return.</p>
+<pre><code>{
+  "status": true,
+  "message": "My attendance",
+  "data": {
+    "month": "2026-09",
+    "summary": {
+      "present": 16, "half_day": 0, "absent": 1, "on_leave": 0, "remote": 5,
+      "day_off": 8, "holiday": 0, "late": 2, "left_early": 0,
+      "missed_checkout": 1, "worked_minutes": 9120
+    },
+    "days": [
+      {
+        "id": 3673,
+        "user_id": 339,
+        "date": "2026-09-25",
+        "status": "present",
+        "leave_paid": null,
+        "expected": "work",
+        "scheduled_minutes": 420,
+        "worked_minutes": 431,
+        "is_late": true,
+        "late_minutes": 14,
+        "left_early": false,
+        "early_minutes": 0,
+        "missed_checkout": false,
+        "first_in_at": "2026-09-25T09:24:00-05:00",
+        "last_out_at": "2026-09-25T17:35:00-05:00",
+        "is_manual": false,
+        "source": "app",
+        "note": null,
+        "needs_review": false,
+        "punches": [
+          { "id": 9812, "type": "in", "at": "2026-09-25T09:24:00-05:00", "branch": "Austin",
+            "distance_m": 35, "within_range": true, "accuracy_m": 12, "source": "app" },
+          { "id": 9840, "type": "out", "at": "2026-09-25T17:35:00-05:00", "branch": "Austin",
+            "distance_m": 41, "within_range": true, "accuracy_m": 9, "source": "app" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+  <p><code>status</code> is <code>open</code> while the day is still going and becomes final after the hourly close-out. <code>needs_review</code> is true when any clocking was out of range. <code>within_range</code> is null when no location was sent or the branch has no map point.</p>
+</div>
+
+<div class="ep" id="att-schedule">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/attendance/my-schedule</span><span class="who">Signed in</span></div>
+  <p>The person's working week and the next ten public holidays.</p>
+<pre><code>{
+  "status": true,
+  "message": "My schedule",
+  "data": {
+    "attendance_mode": "schedule",
+    "schedule": {
+      "id": 12,
+      "name": "Standard week (Mon–Fri)",
+      "grace_minutes": 10,
+      "days": [
+        { "weekday": 1, "name": "Monday", "is_working": true, "start_time": "09:00",
+          "end_time": "17:00", "break_minutes": 60, "required_minutes": 420 }
+      ]
+    },
+    "upcoming_holidays": [ { "date": "2026-11-26", "name": "Thanksgiving" } ]
+  }
+}</code></pre>
+  <p><code>days</code> has all seven days; <code>weekday</code> 1 is Monday and 7 is Sunday. <code>schedule</code> is null when HR hasn't assigned one.</p>
+</div>
+
+<div class="ep" id="corr-create">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/attendance/corrections/create</span><span class="who">Signed in</span></div>
+  <p>Ask a manager to fix a day: forgotten clock-in, wrong times, or a day that was really remote working or leave.</p>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>date</code></td><td>Required, <code>YYYY-MM-DD</code>, today or earlier.</td></tr>
+    <tr><td><code>requested_in</code></td><td><code>HH:MM</code>. Required unless <code>requested_status</code> is sent.</td></tr>
+    <tr><td><code>requested_out</code></td><td>Optional, <code>HH:MM</code>.</td></tr>
+    <tr><td><code>requested_status</code></td><td>Optional: <code>remote</code> or <code>on_leave</code>.</td></tr>
+    <tr><td><code>reason</code></td><td>Required, up to 2,000 characters.</td></tr></table></div>
+  <p>201 "Your request has been sent." with the request in <code>data</code>. 409 "You already have an open request for this day."</p>
+</div>
+
+<div class="ep" id="corr-mine">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/attendance/corrections/mine</span><span class="who">Signed in</span></div>
+  <p>The person's last 100 requests, newest date first.</p>
+<pre><code>{
+  "status": true,
+  "message": "My requests",
+  "data": [
+    { "id": 51, "user_id": 339, "date": "2026-09-22", "requested_in": "09:05:00", "requested_out": "17:30:00",
+      "requested_status": null, "reason": "Phone battery died", "status": "approved",
+      "response": "Fixed", "resolved_by": { "id": 336, "name": "Tomás Alvarez" },
+      "resolved_at": "2026-09-23T10:14:02.000000Z", "created_at": "…", "updated_at": "…" }
+  ]
+}</code></pre>
+  <p><code>status</code>: <code>open</code>, <code>approved</code> or <code>rejected</code>. Times come back with seconds (<code>09:05:00</code>). <code>response</code> is the manager's answer.</p>
+</div>
+
+<!-- ================= VISITS ================= -->
+<h2 id="ep-visits">Home-care visits</h2>
+<p>For people in <code>visits</code> mode: caregivers who travel to clients. They check in and out at each client's address instead of clocking in. They're paid for verified visit time.</p>
+<div class="note"><b>Privacy.</b> A visit's location is a client's home. Show the address and access notes only on the visit screen, never cache them longer than the day needs, and don't show them in notifications on a locked screen.</div>
+
+<div class="ep" id="visit-object">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/visits/my-day?date=2026-09-30</span><span class="who">Signed in</span></div>
+  <p>The person's visits for a day (today if <code>date</code> is left out), in start-time order, without cancelled ones. <code>in_progress</code> is the visit they're checked in to, even one from an earlier day. <code>next</code> is the id of the next planned visit. Each entry is a <b>visit object</b>.</p>
+<pre><code>{
+  "status": true,
+  "message": "My visits",
+  "data": {
+    "date": "2026-09-30",
+    "timezone": "America/Chicago",
+    "in_progress": null,
+    "next": 382,
+    "visits": [
+      {
+        "id": 382,
+        "date": "2026-09-30",
+        "status": "planned",
+        "planned_start": "2026-09-30T08:00:00-05:00",
+        "planned_end": "2026-09-30T09:00:00-05:00",
+        "planned_minutes": 60,
+        "location": {
+          "id": 7, "name": "Mrs E. Walsh", "address": "1520 N Dearborn Pkwy",
+          "city": "Chicago", "postcode": "60641", "latitude": 41.9103, "longitude": -87.631,
+          "geofence_radius_m": 150, "access_notes": null
+        },
+        "staff": null,
+        "from_plan": true,
+        "checked_in_at": null,
+        "check_in_latitude": null,
+        "check_in_longitude": null,
+        "check_in_distance_m": null,
+        "check_in_within_range": null,
+        "checked_out_at": null,
+        "check_out_latitude": null,
+        "check_out_longitude": null,
+        "check_out_distance_m": null,
+        "check_out_within_range": null,
+        "missed_checkout": false,
+        "worked_minutes": 0,
+        "countable_minutes": 0,
+        "review_status": null,
+        "review_note": null,
+        "caregiver_note": null,
+        "cancel_reason": null
+      }
+    ]
+  }
+}</code></pre>
+  <p><code>countable_minutes</code> is the time that will be paid: 0 until the visit is completed, and 0 while it's waiting for review or if it was rejected.</p>
+</div>
+
+<div class="ep" id="visit-checkin">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/visits/check-in</span><span class="who">Signed in</span></div>
+  <div class="tablewrap"><table><tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>visit_id</code></td><td>Required. One of the person's own visits; anyone else's gives a 422 on this field.</td></tr>
+    <tr><td><code>latitude</code>, <code>longitude</code></td><td>Optional but please send; both or neither.</td></tr>
+    <tr><td><code>accuracy_m</code></td><td>Optional, whole metres.</td></tr></table></div>
+  <p>200 with the updated <a href="#visit-object">visit object</a> (now <code>in_progress</code>). The message is "Checked in.", or "Checked in. You're 420 m from the client's address, so a coordinator will check this visit."</p>
+  <p class="label">Refused (409)</p>
+  <p>"You're already checked in to this visit." · "This visit was cancelled." · "This visit is already finished." · "This visit isn't due now — it's planned for 30 Sep, 14:00." (check-in is allowed from 12 hours before to 12 hours after the planned start) · "Check out of your visit to Mrs E. Walsh first." (one visit at a time).</p>
+</div>
+
+<div class="ep" id="visit-checkout">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/visits/check-out</span><span class="who">Signed in</span></div>
+  <p>Same fields as check-in, plus <code>note</code> (optional, up to 2,000 characters): a note for the coordinator, e.g. "Client was asleep, left meal in fridge." 200 with the completed visit. 409 "You're not checked in to this visit."</p>
+</div>
+
+<div class="ep" id="visit-month">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/visits/my-month?month=2026-09</span><span class="who">Signed in</span></div>
+  <p>A month of visits, newest first, without cancelled ones.</p>
+<pre><code>{
+  "status": true,
+  "message": "My visits this month",
+  "data": {
+    "month": "2026-09",
+    "summary": { "completed": 56, "missed": 1, "awaiting_review": 0, "countable_minutes": 3708 },
+    "visits": [ /* visit objects */ ]
+  }
+}</code></pre>
+</div>
+
+<!-- ================= PAY ================= -->
+<h2 id="ep-pay">Pay</h2>
+
+<div class="ep" id="payslips-mine">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/payroll/payslips/mine</span><span class="who">Signed in</span></div>
+  <p>The person's payslips once fully approved, newest period first. Payslips still going through approval never appear.</p>
+<pre><code>{
+  "status": true,
+  "message": "My payslips",
+  "data": [
+    {
+      "id": 1162,
+      "period_start": "2026-08-01T00:00:00.000000Z",
+      "period_end": "2026-08-31T00:00:00.000000Z",
+      "currency": "USD",
+      "period_days": 31,
+      "payment_days": 31,
+      "gross_earnings": 8450,
+      "total_deductions": 2207,
+      "net_pay": 6243,
+      "status": "approved",
+      "payment_method": "transfer",
+      "cheque_number": null,
+      "approved_at": "2026-09-27T00:05:52.000000Z",
+      "…": "plus internal ids"
+    }
+  ]
+}</code></pre>
+  <p>Use the date part of <code>period_start</code>/<code>period_end</code>. <code>status</code> is <code>approved</code>, or <code>carried_forward</code> when the pay was moved to the next period. <code>payment_method</code>: <code>transfer</code> or <code>cheque</code>.</p>
+</div>
+
+<div class="ep" id="payslip-show">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/payroll/payslips/show</span><span class="who">Signed in</span></div>
+  <p>Body: <code>{"id": 1162}</code>. One payslip with its lines, the pay run, who approved it, and any salary queries on it. A person can open only their own approved payslips (403 otherwise).</p>
+<pre><code>{
+  "status": true,
+  "message": "Payslip",
+  "data": {
+    "id": 1162,
+    "…": "same fields as the list",
+    "staff": { "id": 339, "name": "Olivia Novak", "designation": "Software Engineer" },
+    "pay_run": { "id": 55, "frequency": "monthly", "pay_date": "2026-08-31T00:00:00.000000Z" },
+    "l1_approver": { "id": 334, "name": "Hannah Reyes" },
+    "approver": { "id": 333, "name": "Marcus Bell" },
+    "claims": [],
+    "lines": [
+      { "id": 5026, "source": "component", "code": "BASIC", "label": "Basic",
+        "type": "earning", "amount": 8300, "sequence": 1 },
+      { "id": 5027, "source": "component", "code": "REMOTE", "label": "Remote work stipend",
+        "type": "earning", "amount": 150, "sequence": 2 }
+    ]
+  }
+}</code></pre>
+  <p>Show lines in <code>sequence</code> order, grouped by <code>type</code> (<code>earning</code> or <code>deduction</code>). Amounts are always positive; the type says which way they go.</p>
+</div>
+
+<div class="ep" id="salary-mine">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/payroll/salaries/mine</span><span class="who">Signed in</span></div>
+  <p>The person's current salary and what one pay period works out to. <code>data</code> is null (message "No salary set up yet.") when HR hasn't set one.</p>
+<pre><code>{
+  "status": true,
+  "message": "Current salary",
+  "data": {
+    "effective_from": "2025-06-01T00:00:00.000000Z",
+    "pay_frequency": "monthly",
+    "currency": "USD",
+    "components": [
+      { "value": 8300, "component": { "name": "Basic", "code": "BASIC", "type": "earning", "calculation": "fixed" } }
+    ],
+    "per_period": {
+      "currency": "USD",
+      "lines": [ { "code": "BASIC", "label": "Basic", "hourly": false, "type": "earning", "amount": 8300 } ],
+      "gross": 8450,
+      "deductions": 2207,
+      "net": 6243
+    }
+  }
+}</code></pre>
+  <p>For hourly-paid caregivers, <code>hourly</code> is true and the amount is the rate; actual pay comes from verified visit time on the payslip.</p>
+</div>
+
+<div class="ep" id="bank-mine">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/payroll/bank-accounts/mine</span><span class="who">Signed in</span></div>
+  <p>The person's bank details with the numbers masked to the last four digits (<code>"••••2597"</code>). Read-only: only HR can change bank details, which prevents payroll fraud. <code>data</code> is null when nothing is on file.</p>
+<pre><code>{
+  "status": true,
+  "message": "My bank details",
+  "data": {
+    "account_holder_name": "Olivia Novak", "bank_name": "Bank of America", "bank_country": "US",
+    "account_number": "••••2597", "routing_number": "••••0021", "iban": null,
+    "tax_id": null, "bank_code": null, "swift_bic": null, "account_currency": "USD"
+  }
+}</code></pre>
+</div>
+
+<div class="ep" id="claims">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/payroll/claims/create</span><span class="who">Signed in</span></div>
+  <p>A salary query ("my overtime is missing") on one of the person's approved payslips. Body: <code>payslip_id</code>, <code>reason</code> (required, up to 2,000 characters). 201 "Your query has been sent to HR." 409 "You can only query your own approved payslips." or "There is already an open query on this payslip."</p>
+  <p class="label">Also</p>
+  <p><span class="method GET">GET</span> <code>/payroll/claims/mine</code> returns the person's queries, newest first, each with its <code>status</code>, HR's answer in <code>response</code>, and a short <code>payslip</code> summary (<code>period_start</code>, <code>period_end</code>, <code>net_pay</code>, <code>currency</code>).</p>
+</div>
+
+<!-- ================= TASKS ================= -->
+<h2 id="ep-tasks">Tasks</h2>
+
+<div class="ep" id="tasks">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/checklists/my-tasks</span><span class="who">Signed in</span></div>
+  <p>Onboarding and offboarding tasks assigned to the person or to their role, not yet done, soonest due first. A new starter sees things like "Upload your ID" or "Read the handbook"; a manager sees tasks for people joining or leaving their team.</p>
+<pre><code>{
+  "status": true,
+  "message": "My checklist tasks",
+  "data": [
+    {
+      "id": 214, "title": "Upload a photo ID", "description": "Passport or driving licence",
+      "due_date": "2026-10-03", "is_required": true, "status": "todo", "note": null,
+      "checklist": { "id": 31, "type": "onboarding", "anchor_date": "2026-10-01",
+                     "staff": { "id": 360, "name": "Ben Carter", "designation": "Care Worker", "avatar": null } }
+    }
+  ]
+}</code></pre>
+  <p><code>checklist.staff</code> is the person the checklist is about, which may be someone else. <code>anchor_date</code> is their start date (onboarding) or last working day (offboarding).</p>
+  <p class="label">Update a task</p>
+  <p><span class="method POST">POST</span> <code>/checklists/task/update</code> with <code>id</code>, <code>status</code> (<code>todo</code>, <code>in_progress</code>, <code>done</code> or <code>skipped</code>) and an optional <code>note</code>. 200 "Task updated." 403 if the task isn't theirs.</p>
+</div>
+
+<!-- ================= PROFILE ================= -->
+<h2 id="ep-profile">Profile and branches</h2>
+
+<div class="ep" id="profile">
+  <div class="ep-head"><span class="method POST">POST</span><span class="path">/staff/show</span><span class="who">Signed in</span></div>
+  <p>Body: <code>{"id": &lt;me.user.id&gt;}</code>. The person's own profile: contact details, job title, start date, branches, their manager, and anyone reporting to them. Asking for anyone else's id returns 403 unless the person works in HR.</p>
+<pre><code>{
+  "status": true,
+  "message": "Staff profile",
+  "data": {
+    "staff": {
+      "id": 339, "name": "Olivia Novak", "email": "olivia.novak@demo-company.example",
+      "phone": "+1 555 0193", "designation": "Software Engineer", "status": "active",
+      "joined_at": "2025-06-01T00:00:00.000000Z", "dob": "1986-06-26T00:00:00.000000Z",
+      "city": "Austin", "avatar": null, "attendance_mode": "schedule",
+      "branches": [ { "branch_id": 43, "status": true, "branch": { "id": 43, "name": "Austin" } } ],
+      "roles": [],
+      "…": "more HR fields, mostly null"
+    },
+    "is_owner": false,
+    "manager": { "id": 336, "name": "Tomás Alvarez", "designation": "Engineering Manager", "status": "active" },
+    "direct_reports": [],
+    "onboarding": null,
+    "offboarding": null,
+    "checklists": []
+  }
+}</code></pre>
+  <p>Profile details are changed by HR in the web app; there's no staff self-edit yet.</p>
+</div>
+
+<div class="ep" id="branches">
+  <div class="ep-head"><span class="method GET">GET</span><span class="path">/my-branches</span><span class="who">Signed in</span></div>
+  <p>The branches a person belongs to and which they're currently viewing. It matters for managers who cover several branches; most staff have one.</p>
+<pre><code>{ "status": true, "message": "My branches", "data": [ { "id": 43, "name": "Austin", "selected": true } ] }</code></pre>
+  <p><span class="method POST">POST</span> <code>/my-branches/select</code> with <code>{"branch_ids": [43]}</code> changes the selection and returns the same list.</p>
+</div>
+
+<h2 id="values">Status values</h2>
+<div class="tablewrap"><table>
+  <tr><th>Field</th><th>Values</th></tr>
+  <tr><td>Day <code>status</code></td><td><code>open</code> (today, not settled yet), <code>present</code>, <code>half_day</code>, <code>absent</code>, <code>on_leave</code>, <code>remote</code>, <code>day_off</code>, <code>holiday</code>. <code>leave_paid</code> is true/false for leave, otherwise null.</td></tr>
+  <tr><td>Day <code>source</code></td><td><code>app</code>, <code>web</code>, <code>system</code> (set by the close-out), <code>manual</code> (entered by HR).</td></tr>
+  <tr><td>Visit <code>status</code></td><td><code>planned</code>, <code>in_progress</code>, <code>completed</code>, <code>missed</code>, <code>cancelled</code>.</td></tr>
+  <tr><td>Visit <code>review_status</code></td><td>null (nothing to check), <code>needs_review</code> (flagged by location), <code>accepted</code>, <code>rejected</code>. Show <code>review_note</code> when rejected.</td></tr>
+  <tr><td>Person <code>status</code></td><td><code>active</code>, <code>pending</code> (approved, not started yet; can use the app for onboarding tasks). People awaiting approval or who have left can't sign in.</td></tr>
+  <tr><td>Correction / query <code>status</code></td><td><code>open</code>, <code>approved</code>, <code>rejected</code>.</td></tr>
+  <tr><td>Task <code>status</code></td><td><code>todo</code>, <code>in_progress</code>, <code>done</code>, <code>skipped</code>.</td></tr>
+</table></div>
+
+<h2 id="notyet">Not available yet</h2>
+<p>Plan the app so these can slot in later. Tell us which ones you need first.</p>
+<ul>
+  <li><b>Leave requests</b> (holiday and sick leave with balances). This module is next in the build plan. Until then, staff use "ask to fix a day" with <code>requested_status: "on_leave"</code>.</li>
+  <li><b>Push notifications</b> (visit changes, approvals, payslip ready). There's no device-registration endpoint yet.</li>
+  <li><b>Changing your own photo or profile details.</b> HR does this in the web app for now.</li>
+  <li><b>Locking an account to one phone.</b> Not enforced; the <code>device</code> and <code>device_name</code> you send are only recorded.</li>
+  <li><b>Offline clocking.</b> Every clock-in or check-in is recorded at the moment the server receives it. Don't queue taps to send later: a queued tap would be stamped with the wrong time.</li>
+  <li><b>Token expiry and refresh.</b> Tokens don't expire today. If we add expiry, expired tokens will return 401, which you already handle.</li>
+</ul>
+
+<h2 id="testing">Testing</h2>
+<ul>
+  <li><b>Server:</b> <code>https://us.opsyra.brainstormertech.com/api</code> is our live test system. Resolve codes through Central as described above.</li>
+  <li><b>Test accounts:</b> we'll set up a test company for you with one office worker (<code>schedule</code> mode) and one caregiver (<code>visits</code> mode) with visits planned for each day, and send the sign-in details separately. Please don't use real people's data in tests.</li>
+  <li><b>Public demo:</b> company code <code>demo</code> is a shared sample company that's reset every night. Its sign-in is shown on the Opsyra website. It's useful for a quick look, but some actions are locked there.</li>
+</ul>
+
+<h2 id="appendix">Other endpoints</h2>
+<div class="appendix">
+<p>The web app uses these for managers, HR and payroll. They follow the same rules as above and each checks the person's permissions. Details on request if the app grows manager screens.</p>
+<h3>Approvals</h3>
+<ul>
+  <li><code>GET /staff/onboard/pending-approvals</code>, <code>POST /staff/onboard/approve</code>, <code>/staff/onboard/reject</code>. New starters and rehires.</li>
+  <li><code>GET /staff/offboard/pending-approvals</code>, <code>POST /staff/offboard/approve</code>, <code>/staff/offboard/reject</code>. People leaving.</li>
+  <li><code>GET /attendance/corrections/list</code>, <code>POST /attendance/corrections/approve</code>, <code>/attendance/corrections/reject</code>. Fix-a-day requests from the team.</li>
+</ul>
+<h3>Attendance and visits (managers and coordinators)</h3>
+<ul>
+  <li><code>GET /attendance/dashboard</code>, <code>/attendance/daily</code>, <code>POST /attendance/person-month</code>, <code>/attendance/mark</code>, <code>/attendance/staff-mode</code></li>
+  <li>Working hours: <code>/attendance/schedules/list|create|update|delete|assign|assignments|people</code>; holidays: <code>/attendance/holidays/list|create|update|delete</code>; rules: <code>/attendance/policy</code>, <code>/attendance/policy/update</code></li>
+  <li>Visit board: <code>GET /visits/day</code>, <code>/visits/caregivers</code>, <code>/visits/review-queue</code>; <code>POST /visits/create|update|cancel|set-times|review</code></li>
+  <li>Clients and plans: <code>/visits/locations/list|create|update|delete</code>, <code>/visits/plans/list|create|update|delete</code></li>
+</ul>
+<h3>People and HR</h3>
+<ul>
+  <li>Staff: <code>POST /staff/list|index|limited-list|create|update|status-update|offboard|cancel-offboarding|active-direct-reports|update-avatar|clear-device-id</code>, <code>GET /staff/eligible-managers</code></li>
+  <li><code>GET /hr/dashboard</code>, <code>/teams/list</code>, <code>POST /teams/members</code></li>
+  <li>Checklists: <code>/checklists/list|show|start|add-task|cancel</code>, <code>/checklist-templates/list|create|update|delete</code></li>
+  <li>Setup lists: <code>/branches/*</code>, <code>/departments/*</code>, <code>/designations-management/*</code>, <code>/departure-reasons/*</code></li>
+</ul>
+<h3>Payroll</h3>
+<ul>
+  <li><code>GET /payroll/dashboard</code>; pay runs <code>/payroll/pay-runs/list|create|generate|show</code></li>
+  <li>Payslips <code>POST /payroll/payslips/list|approve|regenerate|carry-forward|cheque-number</code>, <code>GET /payroll/payslips/pending-cheques</code></li>
+  <li>Salaries <code>/payroll/salaries/overview|current|history|preview|set</code>; pay components <code>/payroll/pay-components/*</code>; adjustments <code>/payroll/adjustments/*</code>; bank details <code>/payroll/bank-accounts/show|save</code>; queries <code>/payroll/claims/list|approve|reject</code></li>
+</ul>
+<h3>Company</h3>
+<ul>
+  <li><code>/company-settings/show|update</code>, <code>/setup-wizard/*</code>, <code>/roles/*</code>, <code>/approvers/*</code>, <code>/company/owner/show|transfer</code>, <code>GET /login-logs/list</code></li>
+</ul>
+</div>
+
+<footer>Opsyra Staff App API 1.0 · 30 September 2026 · BrainStormers Technologies. Written from the live code. Field names and shapes are exact; example values come from the demo company or are illustrative, and long records are trimmed (marked with …).</footer>
+</main>
+</div>

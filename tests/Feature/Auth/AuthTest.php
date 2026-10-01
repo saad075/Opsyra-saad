@@ -76,13 +76,19 @@ class AuthTest extends TestCase
         $this->assertCount(1, array_unique($messages));
     }
 
-    public function test_the_same_email_in_another_company_is_a_different_account(): void
+    /**
+     * Until 2026-10-01 this proved the opposite: that two tenants could each
+     * own the same email, disambiguated by client_code at login. Email is
+     * now globally unique across the deployment (see
+     * Tests\Feature\Tenancy\GlobalEmailUniquenessTest and docs/decisions.md),
+     * so that scenario can no longer arise — proven here at the point it
+     * would have mattered for login, not just at the model level.
+     */
+    public function test_the_same_email_cannot_be_reused_by_another_company(): void
     {
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
         $this->tenantContext()->runAs($this->tenantB->id, fn () => $this->userB->forceFill(['email' => $this->userA->email])->save());
-
-        $token = $this->login($this->userA, 'password', $this->tenantB->client_code)->assertOk()->json('data.token');
-
-        $this->withBearer($token)->getJson('/api/auth/me')->assertJsonPath('data.user.id', $this->userB->id);
     }
 
     // SLMS360 said "account not active" to anyone who knew an email.

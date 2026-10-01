@@ -147,7 +147,7 @@ class StaffController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string'],
-            'email' => ['required', 'email', ValidationRule::unique('users')->where('tenant_id', $tenantId)],
+            'email' => ['required', 'email', ValidationRule::unique('user_emails', 'email')],
             'phone' => ['required', 'string'],
             'designation' => ['required', 'string'],
             'joined_at' => ['required', 'date'],
@@ -264,7 +264,7 @@ class StaffController extends Controller
 
         if ($user->email !== $validated['email']) {
             $request->validate([
-                'email' => [ValidationRule::unique('users')->where('tenant_id', $tenantId)->ignore($user->id)],
+                'email' => [ValidationRule::unique('user_emails', 'email')->ignore($user->id, 'user_id')],
             ]);
         }
 

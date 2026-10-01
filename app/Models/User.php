@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Modules\Hr\Models\UserBranch;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Tenancy\Concerns\BelongsToTenant;
+use App\Modules\Tenancy\Concerns\HasGloballyUniqueEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -16,7 +17,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use BelongsToTenant, HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use BelongsToTenant, HasApiTokens, HasFactory, HasGloballyUniqueEmail, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.

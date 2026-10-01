@@ -7,6 +7,7 @@ use App\Modules\Directory\Models\ClientDirectoryEntry;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Rbac\Support\DefaultRoles;
 use App\Modules\Setup\Models\TenantSetting;
+use App\Modules\Tenancy\Models\UserEmail;
 use App\Modules\Tenancy\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,6 +41,10 @@ class TenantProvisioner
         if (Tenant::withTrashed()->where('client_code', $data['client_code'])->exists()
             || ClientDirectoryEntry::where('client_code', $data['client_code'])->exists()) {
             throw new InvalidArgumentException("Client code '{$data['client_code']}' is already taken.");
+        }
+
+        if (UserEmail::where('email', $data['admin_email'])->exists()) {
+            throw new InvalidArgumentException("The email '{$data['admin_email']}' is already in use by another account.");
         }
 
         $password = Str::password(16);

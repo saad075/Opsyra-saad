@@ -2,6 +2,51 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-10-01 — Email is globally unique, not per company
+
+- **Reverses the 2026-09-25 decision** ("emails are unique per company
+  only", logged under Login by client code + email + password below).
+  Product requirement: one email must belong to at most one account across
+  the whole country deployment, not just within its own tenant.
+- **The real guarantee is a plain `unique(email)` constraint on `users`**
+  (was `unique(tenant_id, email)`). This works correctly even though
+  `users` is RLS-protected and one tenant's session can never see another
+  tenant's rows: Postgres validates unique constraints — at index build
+  time and on every subsequent insert/update — against the whole physical
+  table, independent of RLS policies. RLS only filters what a query's
+  result set shows, never what a unique index checks. Confirmed
+  empirically against this schema (a scratch RLS-protected table, two
+  tenants, a cross-tenant duplicate) before relying on it, not assumed from
+  documentation.
+- **`user_emails`** (new, global, no `tenant_id`, no RLS — same shape as
+  `client_directory`) exists only so the app can answer "does this email
+  exist anywhere" for a friendly validation error. A plain
+  `Rule::unique('users', 'email')` can't do this itself: run under a
+  tenant's session, RLS still limits what it can see to that tenant's own
+  rows, so it would report an email "available" right up until the actual
+  insert hits the real constraint and throws a raw `QueryException`.
+  `App\Modules\Tenancy\Concerns\HasGloballyUniqueEmail` keeps it in sync
+  with `users` (created/updated events; deletion is a DB cascade, not an
+  app hook). `StaffController` and `TenantProvisioner` validate against it
+  instead of the old `unique('users')->where('tenant_id', ...)`.
+- **Migration order matters**: `make_users_email_globally_unique` runs
+  first and fails loudly (via Postgres's own "Duplicate keys exist") if any
+  two tenants already share an email — by the time `user_emails` is
+  created and backfilled in the next migration, uniqueness is already
+  guaranteed, so the backfill can't itself conflict.
+- **Migration backfill caveat**: a plain `DB::table('users')->get()` inside
+  a migration sees zero rows — RLS blinds even the migration's own
+  connection when no `app.tenant_id` is set, which is the normal state
+  during `migrate`. The backfill walks every tenant's own context instead
+  (same pattern `TenantProvisioner`/`DemoCompanyBuilder` already use), not
+  one unscoped query.
+- Regression tests: `Tests\Feature\Tenancy\GlobalEmailUniquenessTest`
+  (registry sync, DB-level rejection, validation rule, delete-frees-email)
+  and `TenantProvisioningTest::test_an_email_already_used_by_another_company_cannot_become_a_new_admin`.
+  `AuthTest::test_the_same_email_in_another_company_is_a_different_account`
+  — which proved the old behavior — is replaced by
+  `test_the_same_email_cannot_be_reused_by_another_company`.
+
 ## 2026-09-30 — One permissions cache per company
 
 - **Bug (live):** Spatie caches one "permission → roles" list for the

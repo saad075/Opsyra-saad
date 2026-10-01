@@ -95,6 +95,14 @@ class TenantProvisioningTest extends TestCase
         $this->provision(['name' => 'Other', 'admin_email' => 'x@other.test']);
     }
 
+    public function test_an_email_already_used_by_another_company_cannot_become_a_new_admin(): void
+    {
+        $this->provision();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->provision(['name' => 'Other', 'client_code' => 'other', 'admin_email' => 'ada@acme.test']);
+    }
+
     public function test_the_operator_command_creates_a_company_and_shows_the_password_once(): void
     {
         $this->artisan('tenants:create', [

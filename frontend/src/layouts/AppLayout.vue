@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   AlarmOutline,
+  BriefcaseOutline,
   BusinessOutline,
   CalendarOutline,
   CashOutline,
@@ -30,6 +31,7 @@ import {
   SunnyOutline,
   TimeOutline,
   TodayOutline,
+  TrendingUpOutline,
   WalletOutline,
 } from '@vicons/ionicons5'
 import { NAvatar, NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu, type MenuOption } from 'naive-ui'
@@ -100,6 +102,14 @@ const menu = computed<MenuOption[]>(() => {
       ],
     },
     {
+      key: 'crm',
+      label: 'CRM',
+      icon: icon(BriefcaseOutline),
+      children: [
+        { key: 'crm-leads', label: link('crm-leads', 'Leads'), icon: icon(TrendingUpOutline), permission: 'CRM-ManageLeads' },
+      ],
+    },
+    {
       key: 'payroll',
       label: 'Payroll',
       icon: icon(WalletOutline),
@@ -146,6 +156,7 @@ const activeKey = computed(() => {
   if (name === 'checklist') return auth.can('HRMS-StaffManagement') ? 'checklists' : 'tasks'
   if (name === 'payroll-run') return 'payroll-runs'
   if (name === 'attendance-person') return 'attendance-today'
+  if (name === 'crm-lead') return 'crm-leads'
   // A payslip: your own belongs under "My payslips"; anyone else's under Pay runs.
   if (name === 'payslip') return auth.canAny(PAYROLL_VIEWERS) ? 'payroll-runs' : 'my-payslips'
   return name
@@ -157,6 +168,7 @@ const openGroups = computed(() => {
   if (name.startsWith('hr-') || name.startsWith('staff') || ['branches', 'approvals', 'checklists'].includes(name) || (name === 'checklist' && auth.can('HRMS-StaffManagement'))) return ['hr']
   if (name.startsWith('attendance-')) return ['attendance']
   if (name.startsWith('visits-')) return ['visits']
+  if (name.startsWith('crm-')) return ['crm']
   if (name.startsWith('payroll-') || (name === 'payslip' && auth.canAny(PAYROLL_VIEWERS))) return ['payroll']
   if (['setup', 'company-settings', 'departments', 'roles', 'approvers', 'leaving-reasons', 'checklist-templates', 'working-hours', 'holidays', 'attendance-rules'].includes(name)) return ['settings']
   return []

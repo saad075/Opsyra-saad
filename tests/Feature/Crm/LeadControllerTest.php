@@ -5,6 +5,7 @@ namespace Tests\Feature\Crm;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadPipeline;
 use App\Modules\Crm\Models\LeadPipelineStage;
+use App\Modules\Crm\Models\LeadStageChange;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\Support\SeedsTwoTenants;
@@ -206,5 +207,71 @@ class LeadControllerTest extends TestCase
 
         $response->assertOk();
         $this->asTenantOf($this->userA, fn () => $this->assertNull(Lead::find($lead->id)));
+    }
+
+    public function test_moving_a_lead_logs_a_stage_change(): void
+    {
+        $this->givePermission();
+
+        [$lead, $qualifiedStageId] = $this->asTenantOf($this->userA, function () {
+            $lead = Lead::factory()->for($this->tenantA)->create();
+            $qualifiedStage = LeadPipelineStage::where('lead_pipeline_id', $lead->lead_pipeline_id)->where('code', 'qualified')->first();
+
+            return [$lead, $qualifiedStage->id];
+        });
+        $originalStageId = $lead->lead_pipeline_stage_id;
+
+        $this->actingAs($this->userA, 'sanctum')->postJson('/api/leads/move', [
+            'id' => $lead->id,
+            'lead_pipeline_stage_id' => $qualifiedStageId,
+        ])->assertOk();
+
+        $this->asTenantOf($this->userA, function () use ($lead, $originalStageId, $qualifiedStageId) {
+            $change = LeadStageChange::where('lead_id', $lead->id)->first();
+
+            $this->assertNotNull($change);
+            $this->assertSame($originalStageId, $change->from_lead_pipeline_stage_id);
+            $this->assertSame($qualifiedStageId, $change->to_lead_pipeline_stage_id);
+            $this->assertSame($this->userA->id, $change->changed_by);
+        });
+    }
+
+    public function test_moving_to_the_lead_s_own_current_stage_logs_nothing(): void
+    {
+        $this->givePermission();
+
+        $lead = $this->asTenantOf($this->userA, fn () => Lead::factory()->for($this->tenantA)->create());
+
+        $this->actingAs($this->userA, 'sanctum')->postJson('/api/leads/move', [
+            'id' => $lead->id,
+            'lead_pipeline_stage_id' => $lead->lead_pipeline_stage_id,
+        ])->assertOk();
+
+        $this->asTenantOf($this->userA, function () use ($lead) {
+            $this->assertSame(0, LeadStageChange::where('lead_id', $lead->id)->count());
+        });
+    }
+
+    public function test_show_includes_the_stage_change_history_newest_first(): void
+    {
+        $this->givePermission();
+
+        [$lead, $qualifiedId, $proposalId] = $this->asTenantOf($this->userA, function () {
+            $lead = Lead::factory()->for($this->tenantA)->create();
+            $stages = LeadPipelineStage::where('lead_pipeline_id', $lead->lead_pipeline_id)->get();
+
+            $lead->moveToStage($stages->firstWhere('code', 'qualified'));
+            $lead->moveToStage($stages->firstWhere('code', 'proposal'));
+
+            return [$lead, $stages->firstWhere('code', 'qualified')->id, $stages->firstWhere('code', 'proposal')->id];
+        });
+
+        $response = $this->actingAs($this->userA, 'sanctum')->postJson('/api/leads/show', ['id' => $lead->id]);
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data.stage_changes'));
+        // Newest first: the New -> Proposal change was logged second.
+        $this->assertSame($proposalId, $response->json('data.stage_changes.0.to_lead_pipeline_stage_id'));
+        $this->assertSame($qualifiedId, $response->json('data.stage_changes.1.to_lead_pipeline_stage_id'));
     }
 }

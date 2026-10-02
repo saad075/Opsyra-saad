@@ -71,6 +71,12 @@ export const routes: RouteRecordRaw[] = [
       { path: 'hr/checklists', name: 'checklists', component: () => import('@/views/tasks/ChecklistsView.vue'), meta: { title: 'Checklists', permission: 'HRMS-StaffManagement' } },
       { path: 'hr/checklists/:id(\\d+)', name: 'checklist', component: () => import('@/views/tasks/ChecklistView.vue'), meta: { title: 'Checklist' } },
       { path: 'hr/branches', name: 'branches', component: () => import('@/views/hr/BranchesView.vue'), meta: { title: 'Branches', permission: 'HRMS-StaffManagement' } },
+      // The API's list/show endpoints are actually open to any authenticated
+      // staff member, but the route is gated like Branches is (same open-read
+      // API, still gated by HRMS-StaffManagement) — a screen with nothing to
+      // act on isn't worth showing someone who can't use it.
+      { path: 'crm/leads', name: 'crm-leads', component: () => import('@/views/crm/LeadsBoardView.vue'), meta: { title: 'Leads', permission: 'CRM-ManageLeads' } },
+      { path: 'crm/leads/:id(\\d+)', name: 'crm-lead', component: () => import('@/views/crm/LeadDetailView.vue'), meta: { title: 'Lead', permission: 'CRM-ManageLeads' } },
     ],
   },
   {

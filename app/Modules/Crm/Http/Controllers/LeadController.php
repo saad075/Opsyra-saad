@@ -41,8 +41,10 @@ class LeadController extends Controller
             'id' => ['required', 'integer', ValidationRule::exists('leads', 'id')->where('tenant_id', $request->user()->tenant_id)],
         ]);
 
-        $lead = Lead::with(['source:id,name', 'type:id,name', 'pipeline:id,name,rotten_days', 'stage:id,name,code,probability', 'owner:id,name'])
-            ->findOrFail($validated['id']);
+        $lead = Lead::with([
+            'source:id,name', 'type:id,name', 'pipeline:id,name,rotten_days', 'stage:id,name,code,probability', 'owner:id,name',
+            'stageChanges.fromStage:id,name,code', 'stageChanges.toStage:id,name,code', 'stageChanges.changedBy:id,name',
+        ])->findOrFail($validated['id']);
 
         return response()->json([
             'status' => true,
@@ -78,7 +80,7 @@ class LeadController extends Controller
         // (unusual, but possible) needs this — the normal case leaves the
         // lead open on whatever stage it started on.
         if ($stage && ($stage->isWon() || $stage->isLost())) {
-            $lead->moveToStage($stage, $lostReason);
+            $lead->moveToStage($stage, $lostReason, $request->user()->id);
         }
 
         return response()->json(['status' => true, 'message' => 'Lead created.', 'data' => $lead], 201);
@@ -130,7 +132,7 @@ class LeadController extends Controller
             return response()->json(['status' => false, 'message' => 'A reason is required to mark a lead as lost.', 'errors' => ['lost_reason' => ['A reason is required to mark a lead as lost.']]], 422);
         }
 
-        $lead->moveToStage($stage, $validated['lost_reason'] ?? null);
+        $lead->moveToStage($stage, $validated['lost_reason'] ?? null, $request->user()->id);
 
         return response()->json(['status' => true, 'message' => 'Lead moved.', 'data' => $lead]);
     }

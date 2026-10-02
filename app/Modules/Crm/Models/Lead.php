@@ -78,6 +78,11 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function stageChanges()
+    {
+        return $this->hasMany(LeadStageChange::class)->latest('id');
+    }
+
     /**
      * Moves the lead onto $stage, keeping lead_pipeline_id in sync (a stage
      * belongs to exactly one pipeline) and applying won/lost side effects
@@ -87,9 +92,15 @@ class Lead extends Model
      * Reopening: moving off a won/lost stage onto anything else clears
      * status/closed_at/lost_reason, same as Krayin — a lead doesn't stay
      * "won" once dragged back into an active stage.
+     *
+     * Logs a LeadStageChange only when the stage actually changes — the
+     * initial stage a lead is created on isn't logged (nothing to change
+     * from; see create_lead_stage_changes_table).
      */
-    public function moveToStage(LeadPipelineStage $stage, ?string $lostReason = null): void
+    public function moveToStage(LeadPipelineStage $stage, ?string $lostReason = null, ?int $changedBy = null): void
     {
+        $fromStageId = $this->lead_pipeline_stage_id;
+
         $this->lead_pipeline_id = $stage->lead_pipeline_id;
         $this->lead_pipeline_stage_id = $stage->id;
 
@@ -108,6 +119,14 @@ class Lead extends Model
         }
 
         $this->save();
+
+        if ($fromStageId !== $stage->id) {
+            $this->stageChanges()->create([
+                'from_lead_pipeline_stage_id' => $fromStageId,
+                'to_lead_pipeline_stage_id' => $stage->id,
+                'changed_by' => $changedBy,
+            ]);
+        }
     }
 
     /**

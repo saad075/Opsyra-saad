@@ -6,6 +6,7 @@ use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LeadPipeline;
 use App\Modules\Crm\Models\LeadPipelineStage;
 use App\Modules\Crm\Models\LeadSource;
+use App\Modules\Crm\Models\LeadStageChange;
 use App\Modules\Crm\Models\LeadType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\AssertsTenantIsolation;
@@ -14,7 +15,7 @@ use Tests\TestCase;
 /**
  * Per docs/decisions.md: every tenant-scoped module adds its own
  * assertModelIsTenantIsolated() case rather than inventing a new check.
- * Covers all five Leads-module tables — both RLS layers each.
+ * Covers all six Leads-module tables — both RLS layers each.
  */
 class CrmLeadsTenantIsolationTest extends TestCase
 {
@@ -64,6 +65,14 @@ class CrmLeadsTenantIsolationTest extends TestCase
         $this->assertModelIsTenantIsolated(
             Lead::class,
             fn () => Lead::factory()->for($this->tenantB)->create(),
+        );
+    }
+
+    public function test_lead_stage_changes_table_is_tenant_isolated(): void
+    {
+        $this->assertModelIsTenantIsolated(
+            LeadStageChange::class,
+            fn () => LeadStageChange::factory()->for($this->tenantB)->create(),
         );
     }
 }

@@ -30,6 +30,7 @@ final class PermissionCatalogue
         'HRMS-StaffAdjustments' => ['Payroll', 'Add one-off salary adjustments'],
         'HRMS-AttendanceManagement' => ['Attendance', 'Set work schedules and holidays, and review and correct attendance'],
         'HRMS-VisitPlanning' => ['Attendance', 'Plan client visits and review visit check-ins'],
+        'CRM-ManageLeads' => ['CRM', 'Manage leads, pipelines, stages, sources and types'],
     ];
 
     public static function sync(): void

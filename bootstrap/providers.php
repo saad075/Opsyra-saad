@@ -2,6 +2,7 @@
 
 use App\Modules\Attendance\AttendanceServiceProvider;
 use App\Modules\Auth\AuthServiceProvider;
+use App\Modules\Crm\CrmServiceProvider;
 use App\Modules\Hr\HrServiceProvider;
 use App\Modules\Payroll\PayrollServiceProvider;
 use App\Modules\Platform\PlatformServiceProvider;
@@ -20,6 +21,7 @@ return [
     HrServiceProvider::class,
     PayrollServiceProvider::class,
     AttendanceServiceProvider::class,
+    CrmServiceProvider::class,
     SetupServiceProvider::class,
     ModulesServiceProvider::class,
 ];

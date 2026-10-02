@@ -2,6 +2,75 @@
 
 Running log of choices made during the Opsyra port. Newest entries at the top.
 
+## 2026-10-02 — Leads module, referenced against Krayin
+
+- **Replaces an earlier, broader CRM attempt** (Companies/People/
+  Opportunities/Notes/Tasks, referenced against Twenty) that the user
+  rejected as not what they were looking for. That attempt was fully
+  reverted — commit, migrations, permission, reference clones — before this
+  one started. This module is a closer, more literal port of one specific
+  Krayin package (`packages/Webkul/Lead`), chosen and scoped explicitly by
+  the user rather than designed from a blend of references. Full research:
+  `docs/research/crm-leads.md`.
+- **Scope: Leads only** — not Krayin's Contact package. `leads.person_id`
+  is replaced with inline `contact_name`/`contact_email`/`contact_phone` on
+  the lead itself; no separate Contacts/People module exists in this build.
+  Backend API only this time — no frontend screens.
+- **Full Krayin pipeline model, not a fixed stage list** — the user's
+  explicit reason for choosing Krayin over the simpler fixed-`stage`-enum
+  approach used in the reverted attempt. `lead_pipelines` and
+  `lead_pipeline_stages` are real, tenant-editable tables (name,
+  `rotten_days`, per-stage `code`/`name`/`probability`/`sort_order`), not a
+  PHP constant list.
+- **Ported Krayin's *current* stage design, not its original one.** Krayin
+  started with a shared `lead_stages` lookup table reused across pipelines;
+  later migrations (traced in `docs/research/crm-leads.md`) denormalized
+  `code`+`name` onto `lead_pipeline_stages` directly and repointed `leads`
+  at a specific pipeline's stage row. Reading only the oldest migration
+  would have ported a design Krayin itself abandoned.
+- **`status` is a nullable boolean** (null = open, true = won, false =
+  lost), matching Krayin exactly — not the reverted attempt's "won"/"lost"
+  as two entries in a stage enum. `code = 'won'` / `code = 'lost'` on the
+  *stage* is what `Lead::moveToStage()` reads to decide what `status` (and
+  `closed_at`/`lost_reason`) should become; the stage's display name is
+  never involved, so a tenant renaming "Won" to "Closed — Won" changes
+  nothing about the logic.
+- **Reopening**: moving a won/lost lead onto a non-terminal stage clears
+  `status`/`closed_at`/`lost_reason` back to open, same as Krayin.
+  `LeadController::move()` is the *only* path that changes
+  `lead_pipeline_stage_id` — `update()` strips it, so the won/lost side
+  effect in `Lead::moveToStage()` can't be bypassed by a plain field edit.
+- **Every FK on `leads` is `nullOnDelete`**, not Krayin's mix of
+  restrict/set null/cascade — matches Opsyra's own house style
+  (`users.hierarchy_parent_id`) rather than Krayin's. The application layer
+  still refuses to delete a pipeline/stage/source/type actually in use
+  (409), a pipeline's last remaining stage, or a tenant's last remaining
+  pipeline.
+- **`lead_value` is `decimal(12,2)`** (Krayin: `12,4`) — matches
+  `staff_salaries`' existing money convention. Sources/types gained
+  `sequence`/`is_active`/`is_system` (Krayin doesn't have these) to match
+  the existing `departure_reasons`/`pay_components` pattern instead of
+  inventing a new one.
+- **`rotten_days` staleness is approximated from `updated_at`**, not a real
+  last-activity timestamp — no activity log exists in this phase (no
+  Contacts/Activity package ported). Documented as a simplification, not
+  parity with Krayin's actual mechanism.
+- **Every new tenant seeds a default "Sales Pipeline"** (7 stages: New →
+  Contacted → Qualified → Proposal → Negotiation → Won / Lost) plus starter
+  sources and types, via `CrmServiceProvider`'s `Tenant::created` hook —
+  same pattern as `HrServiceProvider` (departure reasons, checklist
+  templates). Existing tenants were backfilled by the migrations
+  themselves (`Tenant::withTrashed()->each(...)`, same pattern as
+  `departure_reasons`' migration).
+- **One permission, `CRM-ManageLeads`**, gates every write across leads,
+  pipelines, stages, sources and types; listing/viewing is open to any
+  authenticated staff member — same shape as `HRMS-StaffManagement` for
+  Branches/Departments.
+- Regression tests: `tests/Feature/Crm/CrmLeadsTenantIsolationTest` (all
+  five tables, both RLS layers) plus one controller test per resource,
+  including the won/lost/reopen transition logic and the "can't delete the
+  last stage/pipeline, or one still in use" guards.
+
 ## 2026-10-01 — Email is globally unique, not per company
 
 - **Reverses the 2026-09-25 decision** ("emails are unique per company

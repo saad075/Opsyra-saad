@@ -44,6 +44,7 @@ class LeadController extends Controller
         $lead = Lead::with([
             'source:id,name', 'type:id,name', 'pipeline:id,name,rotten_days', 'stage:id,name,code,probability', 'owner:id,name',
             'stageChanges.fromStage:id,name,code', 'stageChanges.toStage:id,name,code', 'stageChanges.changedBy:id,name',
+            'notes.author:id,name', 'activities.author:id,name', 'files.uploader:id,name', 'emails.sender:id,name',
         ])->findOrFail($validated['id']);
 
         return response()->json([

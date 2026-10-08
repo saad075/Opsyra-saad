@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { ArrowBackOutline, CheckmarkCircle } from '@vicons/ionicons5'
-import { NAlert, NButton, NCard, NDescriptions, NDescriptionsItem, NEmpty, NForm, NFormItem, NGrid, NGridItem, NIcon, NInput, NModal, NSkeleton, NSpace, useMessage } from 'naive-ui'
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ChatboxEllipsesOutline, DocumentTextOutline, FolderOutline, MailOutline, PulseOutline } from '@vicons/ionicons5'
+import {
+  NAlert, NButton, NCard, NDescriptions, NDescriptionsItem, NEmpty, NForm, NFormItem, NGrid, NGridItem,
+  NIcon, NInput, NModal, NSkeleton, NSpace, NTabPane, NTabs, useMessage,
+} from 'naive-ui'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '@/api/client'
 import type { ApiEnvelope } from '@/api/types'
 import type { LeadPipelineStage, LeadRow } from '@/api/crmLeadsTypes'
+import LeadActivitiesPanel from '@/components/crm/LeadActivitiesPanel.vue'
+import LeadFilesPanel from '@/components/crm/LeadFilesPanel.vue'
 import LeadFormModal from '@/components/crm/LeadFormModal.vue'
+import LeadMailModal from '@/components/crm/LeadMailModal.vue'
+import LeadNotesPanel from '@/components/crm/LeadNotesPanel.vue'
+import LeadStageStepper from '@/components/crm/LeadStageStepper.vue'
 import { useLeadStageMove } from '@/composables/useLeadStageMove'
 import { formatDate } from '@/lib/staff'
 import { formatMoney } from '@/lib/money'
@@ -21,6 +29,15 @@ const id = computed(() => Number(route.params.id))
 const lead = ref<LeadRow | null>(null)
 const error = ref('')
 const editOpen = ref(false)
+const mailOpen = ref(false)
+const activeTab = ref<'notes' | 'activity' | 'files' | 'emails' | 'changelog'>('notes')
+const tabsCard = ref<{ $el: HTMLElement } | null>(null)
+
+async function focusTab(tab: typeof activeTab.value) {
+  activeTab.value = tab
+  await nextTick()
+  tabsCard.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
 
 async function loadLead() {
   error.value = ''
@@ -43,19 +60,9 @@ async function loadStages() {
   stages.value = data.data.find((p) => p.id === lead.value!.lead_pipeline_id)?.stages ?? []
 }
 
-async function clickStage(stage: LeadPipelineStage) {
-  if (! lead.value || ! auth.can('CRM-ManageLeads') || stage.id === lead.value.lead_pipeline_stage_id) return
-
+async function onStageSelect(stage: LeadPipelineStage) {
+  if (! lead.value || stage.id === lead.value.lead_pipeline_stage_id) return
   await requestMove(lead.value, stage)
-}
-
-const STAGE_COLOR: Record<string, string> = { won: '#18a058', lost: '#d03050' }
-
-function stageStatus(stage: LeadPipelineStage): 'current' | 'done' | 'upcoming' {
-  if (! lead.value) return 'upcoming'
-  if (stage.id === lead.value.lead_pipeline_stage_id) return 'current'
-  const currentOrder = stages.value.find((s) => s.id === lead.value!.lead_pipeline_stage_id)?.sort_order ?? 0
-  return stage.sort_order < currentOrder ? 'done' : 'upcoming'
 }
 
 watch(id, async () => {
@@ -71,10 +78,10 @@ onMounted(async () => {
 
 <template>
   <div class="page wide">
-    <NButton text class="back" @click="router.push({ name: 'crm-leads' })">
-      <template #icon><NIcon><ArrowBackOutline /></NIcon></template>
-      Leads
-    </NButton>
+    <div class="crumb">
+      <RouterLink :to="{ name: 'crm-leads' }">Leads</RouterLink>
+      <span v-if="lead"> / {{ lead.title }}</span>
+    </div>
 
     <NAlert v-if="error" type="error" :show-icon="false">{{ error }}</NAlert>
     <NSkeleton v-else-if="! lead" height="300px" :sharp="false" />
@@ -85,22 +92,32 @@ onMounted(async () => {
         <NButton v-if="auth.can('CRM-ManageLeads')" @click="editOpen = true">Edit</NButton>
       </div>
 
-      <div class="stepper">
-        <button
-          v-for="stage in stages"
-          :key="stage.id"
-          type="button"
-          class="step"
-          :class="stageStatus(stage)"
-          :style="stageStatus(stage) === 'current' ? { background: STAGE_COLOR[stage.code] ?? '#2080f0' } : {}"
-          :disabled="! auth.can('CRM-ManageLeads') || moving"
-          @click="clickStage(stage)"
-        >
-          <NIcon v-if="stageStatus(stage) === 'done'" size="14" class="step-icon"><CheckmarkCircle /></NIcon>
-          {{ stage.name }}
+      <LeadStageStepper
+        :stages="stages"
+        :current-stage-id="lead.lead_pipeline_stage_id"
+        :disabled="! auth.can('CRM-ManageLeads') || moving"
+        @select="onStageSelect"
+      />
+      <NAlert v-if="lead.status === false" type="error" :show-icon="false" class="gap">Lost: {{ lead.lost_reason }}</NAlert>
+
+      <div class="quick-actions">
+        <button type="button" class="quick-action mail" @click="mailOpen = true">
+          <NIcon size="22"><MailOutline /></NIcon>
+          <span>Mail</span>
+        </button>
+        <button type="button" class="quick-action file" @click="focusTab('files')">
+          <NIcon size="22"><FolderOutline /></NIcon>
+          <span>File</span>
+        </button>
+        <button type="button" class="quick-action note" @click="focusTab('notes')">
+          <NIcon size="22"><DocumentTextOutline /></NIcon>
+          <span>Note</span>
+        </button>
+        <button type="button" class="quick-action activity" @click="focusTab('activity')">
+          <NIcon size="22"><PulseOutline /></NIcon>
+          <span>Activity</span>
         </button>
       </div>
-      <NAlert v-if="lead.status === false" type="error" :show-icon="false" class="gap">Lost: {{ lead.lost_reason }}</NAlert>
 
       <NGrid :cols="3" :x-gap="16" :y-gap="16" item-responsive responsive="screen">
         <NGridItem span="3 l:1">
@@ -129,19 +146,46 @@ onMounted(async () => {
         </NGridItem>
 
         <NGridItem span="3 l:2">
-          <NCard title="Changelog">
-            <NEmpty v-if="! lead.stage_changes?.length" description="No stage changes yet." />
-            <div v-for="change in lead.stage_changes" :key="change.id" class="change">
-              <span class="change-text">
-                Updated stage: <strong>{{ change.from_stage?.name ?? '—' }}</strong> → <strong>{{ change.to_stage?.name ?? '—' }}</strong>
-              </span>
-              <span class="muted small">{{ formatDate(change.created_at) }} · by {{ change.changed_by?.name ?? 'System' }}</span>
-            </div>
+          <NCard ref="tabsCard" content-style="padding-top: 0">
+            <NTabs v-model:value="activeTab" type="line" animated>
+              <NTabPane name="notes">
+                <template #tab>
+                  <ChatboxEllipsesOutline class="tab-icon" />
+                  Notes
+                </template>
+                <LeadNotesPanel :lead-id="id" :notes="lead.notes ?? []" @changed="loadLead" />
+              </NTabPane>
+              <NTabPane name="activity" tab="Activity">
+                <LeadActivitiesPanel :lead-id="id" :activities="lead.activities ?? []" @changed="loadLead" />
+              </NTabPane>
+              <NTabPane name="files" tab="Files">
+                <LeadFilesPanel :lead-id="id" :files="lead.files ?? []" @changed="loadLead" />
+              </NTabPane>
+              <NTabPane name="emails" tab="Emails">
+                <NEmpty v-if="! lead.emails?.length" description="No emails sent yet." />
+                <div v-for="sent in lead.emails" :key="sent.id" class="change">
+                  <span class="change-text">
+                    To <strong>{{ sent.to_email }}</strong> — {{ sent.subject }}
+                  </span>
+                  <span class="muted small">{{ formatDate(sent.created_at) }} · by {{ sent.sender?.name ?? 'Unknown' }}</span>
+                </div>
+              </NTabPane>
+              <NTabPane name="changelog" tab="Changelog">
+                <NEmpty v-if="! lead.stage_changes?.length" description="No stage changes yet." />
+                <div v-for="change in lead.stage_changes" :key="change.id" class="change">
+                  <span class="change-text">
+                    Updated stage: <strong>{{ change.from_stage?.name ?? '—' }}</strong> → <strong>{{ change.to_stage?.name ?? '—' }}</strong>
+                  </span>
+                  <span class="muted small">{{ formatDate(change.created_at) }} · by {{ change.changed_by?.name ?? 'System' }}</span>
+                </div>
+              </NTabPane>
+            </NTabs>
           </NCard>
         </NGridItem>
       </NGrid>
 
       <LeadFormModal v-model:show="editOpen" :lead="lead" :pipeline-id="lead.lead_pipeline_id" @saved="loadLead" @deleted="router.push({ name: 'crm-leads' })" />
+      <LeadMailModal v-model:show="mailOpen" :lead-id="id" :default-to="lead.contact_email" @sent="loadLead" />
 
       <NModal v-model:show="lostModalOpen" preset="card" title="Mark as lost" style="max-width: 420px" :close-on-esc="false" :mask-closable="false">
         <NForm @submit.prevent="confirmLostMove">
@@ -163,45 +207,19 @@ onMounted(async () => {
   max-width: 1180px;
 }
 
-.back {
+.crumb {
   margin-bottom: 14px;
+  font-size: 0.9em;
 }
 
-.stepper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+.crumb a {
+  color: inherit;
+  opacity: 0.7;
+  text-decoration: none;
 }
 
-.step {
-  border: 1px solid var(--n-border-color, #d9d9d9);
-  background: var(--n-color, #fff);
-  border-radius: 16px;
-  padding: 6px 14px;
-  font-size: 0.85em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.step:disabled {
-  cursor: default;
-}
-
-.step.current {
-  color: #fff;
-  border-color: transparent;
-  font-weight: 600;
-}
-
-.step.done {
-  opacity: 0.75;
-}
-
-.step-icon {
-  color: #18a058;
+.crumb a:hover {
+  text-decoration: underline;
 }
 
 .gap {
@@ -240,5 +258,68 @@ onMounted(async () => {
 
 .small {
   font-size: 0.85em;
+}
+
+.tab-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -3px;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 92px;
+  padding: 14px 8px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.quick-action.mail {
+  background: #d4f5dd;
+  color: #1b7a3d;
+}
+
+.quick-action.mail:hover {
+  background: #bfeecc;
+}
+
+.quick-action.file {
+  background: #d1f3f7;
+  color: #0e7c8a;
+}
+
+.quick-action.file:hover {
+  background: #b9ecf2;
+}
+
+.quick-action.note {
+  background: #fbead0;
+  color: #c97a1a;
+}
+
+.quick-action.note:hover {
+  background: #f7dbb0;
+}
+
+.quick-action.activity {
+  background: #d9e4fb;
+  color: #2851c9;
+}
+
+.quick-action.activity:hover {
+  background: #c3d4f8;
 }
 </style>

@@ -83,6 +83,26 @@ class Lead extends Model
         return $this->hasMany(LeadStageChange::class)->latest('id');
     }
 
+    public function notes()
+    {
+        return $this->hasMany(LeadNote::class)->latest('id');
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(LeadActivity::class)->latest('id');
+    }
+
+    public function files()
+    {
+        return $this->hasMany(LeadFile::class)->latest('id');
+    }
+
+    public function emails()
+    {
+        return $this->hasMany(LeadEmail::class)->latest('id');
+    }
+
     /**
      * Moves the lead onto $stage, keeping lead_pipeline_id in sync (a stage
      * belongs to exactly one pipeline) and applying won/lost side effects

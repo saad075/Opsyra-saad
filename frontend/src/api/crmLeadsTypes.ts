@@ -58,8 +58,12 @@ export interface LeadRow {
   stage?: Pick<LeadPipelineStage, 'id' | 'name' | 'code'> | null
   owner?: Named | null
   is_rotten?: boolean
-  /** Only present on /leads/show, not /leads/list or /leads/move's response. */
+  /** All only present on /leads/show, not /leads/list or /leads/move's response. */
   stage_changes?: LeadStageChange[]
+  notes?: LeadNote[]
+  activities?: LeadActivity[]
+  files?: LeadFile[]
+  emails?: LeadEmail[]
 }
 
 export interface LeadStageChange {
@@ -68,6 +72,44 @@ export interface LeadStageChange {
   from_stage: Pick<LeadPipelineStage, 'id' | 'name' | 'code'> | null
   to_stage: Pick<LeadPipelineStage, 'id' | 'name' | 'code'> | null
   changed_by: Named | null
+}
+
+export interface LeadNote {
+  id: number
+  body: string
+  created_at: string
+  author: Named | null
+}
+
+export type LeadActivityType = 'call' | 'meeting' | 'lunch' | 'deadline' | 'other'
+
+export interface LeadActivity {
+  id: number
+  type: LeadActivityType
+  title: string
+  comment: string | null
+  scheduled_at: string | null
+  is_done: boolean
+  created_at: string
+  author: Named | null
+}
+
+export interface LeadFile {
+  id: number
+  original_name: string
+  mime_type: string
+  size: number
+  created_at: string
+  uploader: Named | null
+}
+
+export interface LeadEmail {
+  id: number
+  to_email: string
+  subject: string
+  body: string
+  created_at: string
+  sender: Named | null
 }
 
 export interface LeadForm {

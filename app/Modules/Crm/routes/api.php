@@ -1,6 +1,10 @@
 <?php
 
+use App\Modules\Crm\Http\Controllers\LeadActivityController;
 use App\Modules\Crm\Http\Controllers\LeadController;
+use App\Modules\Crm\Http\Controllers\LeadFileController;
+use App\Modules\Crm\Http\Controllers\LeadMailController;
+use App\Modules\Crm\Http\Controllers\LeadNoteController;
 use App\Modules\Crm\Http\Controllers\LeadPipelineController;
 use App\Modules\Crm\Http\Controllers\LeadSourceController;
 use App\Modules\Crm\Http\Controllers\LeadTypeController;
@@ -40,5 +44,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('update', [LeadController::class, 'update']);
         Route::post('move', [LeadController::class, 'move']);
         Route::post('delete', [LeadController::class, 'destroy']);
+    });
+
+    Route::prefix('lead-notes')->group(function () {
+        Route::post('create', [LeadNoteController::class, 'store']);
+        Route::post('update', [LeadNoteController::class, 'update']);
+        Route::post('delete', [LeadNoteController::class, 'destroy']);
+    });
+
+    Route::prefix('lead-activities')->group(function () {
+        Route::post('create', [LeadActivityController::class, 'store']);
+        Route::post('update', [LeadActivityController::class, 'update']);
+        Route::post('delete', [LeadActivityController::class, 'destroy']);
+    });
+
+    Route::prefix('lead-files')->group(function () {
+        Route::post('create', [LeadFileController::class, 'store']);
+        Route::post('download', [LeadFileController::class, 'download']);
+        Route::post('delete', [LeadFileController::class, 'destroy']);
+    });
+
+    Route::prefix('lead-mail')->group(function () {
+        Route::post('send', [LeadMailController::class, 'store']);
     });
 });

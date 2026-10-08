@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { AddOutline } from '@vicons/ionicons5'
-import { NAlert, NButton, NForm, NFormItem, NIcon, NInput, NModal, NSelect, NSkeleton, useMessage } from 'naive-ui'
-import { computed, onMounted, ref, watch } from 'vue'
+import { AddOutline, AlertCircleOutline, GridOutline, ListOutline } from '@vicons/ionicons5'
+import { NAlert, NButton, NButtonGroup, NDataTable, NForm, NFormItem, NIcon, NInput, NModal, NSelect, NSkeleton, NTag, NTooltip, useMessage, type DataTableColumns } from 'naive-ui'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import { api, errorMessage } from '@/api/client'
@@ -10,6 +10,8 @@ import type { LeadPipeline, LeadPipelineStage, LeadRow } from '@/api/crmLeadsTyp
 import LeadCard from '@/components/crm/LeadCard.vue'
 import LeadFormModal from '@/components/crm/LeadFormModal.vue'
 import { useLeadStageMove } from '@/composables/useLeadStageMove'
+import { formatDate } from '@/lib/staff'
+import { formatMoney } from '@/lib/money'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -96,6 +98,46 @@ function openLead(lead: LeadRow) {
   router.push({ name: 'crm-lead', params: { id: lead.id } })
 }
 
+const viewMode = ref<'board' | 'list'>('board')
+
+const listColumns: DataTableColumns<LeadRow> = [
+  {
+    title: 'Title',
+    key: 'title',
+    render: (lead) =>
+      h('span', { class: 'list-title', onClick: () => openLead(lead) }, [
+        lead.title,
+        lead.is_rotten
+          ? h(
+              NTooltip,
+              { trigger: 'hover' },
+              {
+                trigger: () => h(NIcon, { class: 'list-rotten', size: 14 }, { default: () => h(AlertCircleOutline) }),
+                default: () => 'No movement in a while — worth a follow-up.',
+              },
+            )
+          : null,
+      ]),
+  },
+  {
+    title: 'Stage',
+    key: 'stage',
+    render: (lead) =>
+      lead.stage
+        ? h(
+            NTag,
+            { size: 'small', round: true, color: STAGE_COLOR[lead.stage.code] ? { color: STAGE_COLOR[lead.stage.code], textColor: '#fff', borderColor: 'transparent' } : undefined },
+            { default: () => lead.stage!.name },
+          )
+        : '—',
+  },
+  { title: 'Value', key: 'lead_value', align: 'right', render: (lead) => (lead.lead_value ? formatMoney(Number(lead.lead_value), 'USD') : '—') },
+  { title: 'Contact', key: 'contact_name', render: (lead) => lead.contact_name ?? '—' },
+  { title: 'Source', key: 'source', render: (lead) => lead.source?.name ?? '—' },
+  { title: 'Owner', key: 'owner', render: (lead) => lead.owner?.name ?? '—' },
+  { title: 'Expected close', key: 'expected_close_date', render: (lead) => formatDate(lead.expected_close_date) || '—' },
+]
+
 watch(selectedPipelineId, loadLeads)
 
 onMounted(async () => {
@@ -113,6 +155,14 @@ onMounted(async () => {
       </div>
       <div class="header-actions">
         <NSelect v-if="pipelineOptions.length > 1" v-model:value="selectedPipelineId" :options="pipelineOptions" style="width: 200px" />
+        <NButtonGroup>
+          <NButton :type="viewMode === 'board' ? 'primary' : 'default'" ghost @click="viewMode = 'board'">
+            <template #icon><NIcon><GridOutline /></NIcon></template>
+          </NButton>
+          <NButton :type="viewMode === 'list' ? 'primary' : 'default'" ghost @click="viewMode = 'list'">
+            <template #icon><NIcon><ListOutline /></NIcon></template>
+          </NButton>
+        </NButtonGroup>
         <NButton v-if="auth.can('CRM-ManageLeads')" type="primary" @click="openCreate">
           <template #icon><NIcon><AddOutline /></NIcon></template>
           Add lead
@@ -123,7 +173,7 @@ onMounted(async () => {
     <NAlert v-if="error" type="error" :show-icon="false">{{ error }}</NAlert>
     <NSkeleton v-else-if="loading" height="400px" :sharp="false" />
 
-    <div v-else class="board">
+    <div v-else-if="viewMode === 'board'" class="board">
       <div v-for="stage in currentPipeline?.stages ?? []" :key="stage.id" class="column">
         <div class="column-head" :style="{ borderTopColor: STAGE_COLOR[stage.code] ?? '#d9d9d9' }">
           <strong>{{ stage.name }}</strong>
@@ -143,6 +193,15 @@ onMounted(async () => {
         </draggable>
       </div>
     </div>
+
+    <NDataTable
+      v-else
+      :columns="listColumns"
+      :data="leads"
+      :bordered="false"
+      :row-key="(l: LeadRow) => l.id"
+      :pagination="{ pageSize: 25 }"
+    />
 
     <LeadFormModal v-model:show="modalOpen" :lead="editing" :pipeline-id="selectedPipelineId" @saved="loadLeads" @deleted="loadLeads" />
 
@@ -211,5 +270,21 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+:deep(.list-title) {
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:deep(.list-title:hover) {
+  text-decoration: underline;
+}
+
+:deep(.list-rotten) {
+  color: #f0a020;
 }
 </style>

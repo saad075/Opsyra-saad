@@ -1,0 +1,1 @@
+var e=new Set([`OMR`,`BHD`,`KWD`]);function t(t,n){let r=e.has(n.toUpperCase())?3:2;try{return new Intl.NumberFormat(void 0,{style:`currency`,currency:n,minimumFractionDigits:r,maximumFractionDigits:r}).format(t)}catch{return`${n} ${t.toFixed(r)}`}}export{t};

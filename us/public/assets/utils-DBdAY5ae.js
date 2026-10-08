@@ -1,0 +1,1 @@
+import{fn as e,ln as t}from"./is-browser-dQ-mLBB2.js";e();function n(){return t()!==null}var r=typeof window<`u`;export{r as n,n as t};

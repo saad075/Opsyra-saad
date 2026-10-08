@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ * Opsyra brand — the same palette and type as the product app
+ * (docs/decisions.md, "Frontend stack"): teal accent, cool neutrals,
+ * Plus Jakarta Sans headings, Source Sans 3 body.
+ */
+@theme {
+    --font-sans: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+
+    --color-brand-50: #eef7f5;
+    --color-brand-100: #e3f1ee;
+    --color-brand-200: #bfe2da;
+    --color-brand-300: #8fcdc0;
+    --color-brand-400: #5cc4b4;
+    --color-brand-500: #12806f;
+    --color-brand-600: #0e6e62;
+    --color-brand-700: #0a5a50;
+    --color-brand-800: #17332f;
+
+    --color-ink: #16202a;
+    --color-muted: #5a6774;
+    --color-line: #dce1e7;
+    --color-canvas: #f6f7f9;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    @apply bg-white font-sans text-ink antialiased;
+}
+
+h1,
+h2,
+h3 {
+    @apply font-display tracking-tight;
+    text-wrap: balance;
+}
+
+/* Soft dotted field behind the hero illustration. */
+.dot-grid {
+    background-image: radial-gradient(circle, rgb(14 110 98 / 0.14) 1px, transparent 1px);
+    background-size: 18px 18px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .float-slow {
+        animation: float 7s ease-in-out infinite;
+    }
+
+    .float-slow-delay {
+        animation: float 7s ease-in-out 1.5s infinite;
+    }
+
+    @keyframes float {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-6px);
+        }
+    }
+}

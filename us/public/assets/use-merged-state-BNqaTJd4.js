@@ -1,0 +1,1 @@
+import{$t as e,fn as t,jn as n}from"./is-browser-dQ-mLBB2.js";t();function r(t,r){return n(t,e=>{e!==void 0&&(r.value=e)}),e(()=>t.value===void 0?r.value:t.value)}export{r as t};

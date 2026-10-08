@@ -1,0 +1,1 @@
+import{Z as e,fn as t,pn as n}from"./is-browser-dQ-mLBB2.js";import{b as r}from"./index-Cc8HQXPT.js";t();function i(){let t=n(r,null);return t===null&&e(`use-dialog`,`No outer <n-dialog-provider /> founded.`),t}export{i as t};
